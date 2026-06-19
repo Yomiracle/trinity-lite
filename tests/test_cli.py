@@ -26,6 +26,13 @@ class CliTest(unittest.TestCase):
                 code = main(["worker", "codex", "--once", "--db", str(db)])
                 self.assertEqual(code, 0)
 
+    def test_route_errors_are_structured(self):
+        output = io.StringIO()
+        with redirect_stdout(output):
+            code = main(["route", "review this patch"])
+        self.assertEqual(code, 2)
+        self.assertIn('"error"', output.getvalue())
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -46,7 +46,7 @@ Copy the command example and edit it for your machine:
 
 ```bash
 cp examples/agents.command.example.json agents.local.json
-trinity-lite dispatch-auto "write a unit test" --agents agents.local.json
+trinity-lite dispatch-auto "write a unit test"
 trinity-lite worker codex --once --agents agents.local.json
 ```
 
@@ -55,7 +55,7 @@ Agent commands are configured as JSON arrays and run with `shell=False`.
 ## Core Commands
 
 ```bash
-trinity-lite route "review this patch"
+trinity-lite route "review this patch" --previous-agent codex
 trinity-lite dispatch codex "implement X"
 trinity-lite dispatch-auto "audit this project"
 trinity-lite status <task_id>

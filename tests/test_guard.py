@@ -21,6 +21,18 @@ class GuardTest(unittest.TestCase):
             self.assertTrue(any("blocked runtime/private file" in i for i in issues))
             self.assertTrue(any("possible secret" in i for i in issues))
 
+    def test_scan_public_tree_blocks_symlinks(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            target = root / "target.md"
+            target.write_text("safe", encoding="utf-8")
+            try:
+                (root / "linked.md").symlink_to(target)
+            except OSError:
+                self.skipTest("symlinks are not available on this filesystem")
+            issues = scan_public_tree(root)
+            self.assertTrue(any("symlink is not allowed" in i for i in issues))
+
 
 if __name__ == "__main__":
     unittest.main()

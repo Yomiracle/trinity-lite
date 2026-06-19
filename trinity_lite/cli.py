@@ -79,6 +79,14 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    try:
+        return run_command(args)
+    except (KeyError, OSError, ValueError) as exc:
+        print_json({"error": str(exc)})
+        return 2
+
+
+def run_command(args: argparse.Namespace) -> int:
     bus = TrinityBus(args.db)
 
     if args.command == "route":
