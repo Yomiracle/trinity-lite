@@ -1,4 +1,7 @@
 import unittest
+import json
+import tempfile
+from pathlib import Path
 
 from trinity_lite.router import RouteError, resolve_route
 
@@ -22,6 +25,18 @@ class RouterTest(unittest.TestCase):
     def test_opposite_requires_previous_agent(self):
         with self.assertRaises(RouteError):
             resolve_route("review patch", task_type="code_review")
+
+    def test_custom_routes_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            routes_path = Path(tmp) / "routes.json"
+            routes_path.write_text(json.dumps({
+                "routes": {
+                    "custom": {"agent": "hermes", "review_required": False}
+                },
+                "opposites": {}
+            }), encoding="utf-8")
+            route = resolve_route("anything", task_type="custom", routes_path=str(routes_path))
+            self.assertEqual(route["agent"], "hermes")
 
 
 if __name__ == "__main__":

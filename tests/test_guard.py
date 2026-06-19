@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from trinity_lite.guard import redact_secrets, scan_public_tree
+from trinity_lite.guard import GuardError, ensure_inside_roots, redact_secrets, scan_public_tree
 
 
 class GuardTest(unittest.TestCase):
@@ -32,6 +32,23 @@ class GuardTest(unittest.TestCase):
                 self.skipTest("symlinks are not available on this filesystem")
             issues = scan_public_tree(root)
             self.assertTrue(any("symlink is not allowed" in i for i in issues))
+
+    def test_scan_public_tree_skips_pycache(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cache = root / "__pycache__"
+            cache.mkdir()
+            (cache / "module.pyc").write_bytes(b"\x00\x01not-text")
+            self.assertEqual(scan_public_tree(root), [])
+
+    def test_ensure_inside_roots(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            child = root / "child"
+            child.mkdir()
+            self.assertEqual(ensure_inside_roots(child, [root]), child.resolve())
+            with self.assertRaises(GuardError):
+                ensure_inside_roots("/", [root])
 
 
 if __name__ == "__main__":

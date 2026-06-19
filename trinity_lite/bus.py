@@ -221,10 +221,9 @@ class TrinityBus:
             rows = conn.execute(sql, params).fetchall()
             messages = [dict(r) for r in rows]
             if mark_read and messages:
-                ids = [m["id"] for m in messages]
-                placeholders = ",".join("?" for _ in ids)
-                conn.execute(
-                    f"UPDATE messages SET read = 1 WHERE id IN ({placeholders})",
-                    ids,
-                )
+                for message in messages:
+                    conn.execute(
+                        "UPDATE messages SET read = 1 WHERE id = ?",
+                        (message["id"],),
+                    )
         return messages

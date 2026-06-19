@@ -58,12 +58,14 @@ def scan_public_tree(root: str | os.PathLike[str]) -> list[str]:
     issues: list[str] = []
     for path in root_path.rglob("*"):
         rel = path.relative_to(root_path)
-        if ".git" in path.parts:
+        if ".git" in path.parts or "__pycache__" in path.parts:
             continue
         if path.is_symlink():
             issues.append(f"symlink is not allowed in public tree: {rel}")
             continue
         if path.is_dir():
+            continue
+        if path.suffix == ".pyc":
             continue
         if path.name in BLOCKED_PUBLIC_NAMES:
             issues.append(f"blocked runtime/private file: {rel}")
