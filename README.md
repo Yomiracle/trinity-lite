@@ -5,11 +5,34 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/Yomiracle/trinity-lite)](https://github.com/Yomiracle/trinity-lite/releases)
 
-**A reproducible three-agent task bus for Codex, Claude Code, Hermes, or any CLI-based agent.**
+**Local-first multi-agent workflow infrastructure for AI coding agents.**
 
-Trinity Lite turns multi-agent collaboration into an inspectable local workflow: route a task, persist it in SQLite, let a worker execute it, and read the result later. It starts with mock agents so anyone can run the full loop, then scales to real CLI agents through local command adapters.
+Trinity Lite gives Codex, Claude Code, Hermes, and any CLI-based agent a shared task bus: route work, persist state in SQLite, run workers, capture results, and inspect the whole workflow from the command line.
 
 [中文 README](README_zh.md)
+
+## Why Trinity Lite
+
+AI coding agents are powerful on their own, but multi-agent work is often still coordinated by hand:
+
+| Manual workflow | Trinity Lite workflow |
+|-----------------|----------------------|
+| Copy results between tools | Dispatch tasks through a shared bus |
+| Remember task state yourself | Store task status and results in SQLite |
+| Decide handoffs manually | Route by task type or explicit agent |
+| Lose failure context | Keep errors, results, and messages queryable |
+| Demo depends on installed real agents | Mock agents run the full workflow locally |
+
+Trinity Lite turns "several AI tools on one machine" into a small, reproducible agent workflow layer.
+
+## Who It Is For
+
+| User | What Trinity Lite helps with |
+|------|------------------------------|
+| AI developers | Prototype multi-agent coding workflows without building a platform first |
+| Agent workflow builders | Test routing, task persistence, review handoffs, and worker execution |
+| Indie hackers and small teams | Coordinate local CLI agents without server infrastructure |
+| Technical creators and educators | Demonstrate real multi-agent flow with commands people can run |
 
 ## 30-Second Demo
 
@@ -25,10 +48,30 @@ trinity-lite tasks
 
 The default agents are mock agents, so this demo works even if Codex, Claude Code, or Hermes are not installed.
 
-## What It Does
+## How It Works
 
 ```text
-user task -> router -> SQLite task bus -> worker -> agent adapter -> result
+                  +----------------+
+user task ------> | router         |
+                  +-------+--------+
+                          |
+                          v
+                  +-------+--------+
+                  | SQLite task bus|
+                  +-------+--------+
+                          |
+          +---------------+----------------+
+          v                                v
+   +------+-------+                 +------+-------+
+   | Codex worker |                 | review worker|
+   +------+-------+                 +------+-------+
+          |                                |
+          v                                v
+   agent adapter                    agent adapter
+          |                                |
+          +---------------+----------------+
+                          v
+                  status / result / inbox
 ```
 
 Default roles are configurable:
@@ -41,21 +84,37 @@ Default roles are configurable:
 
 ## Core Capabilities
 
-- **Automatic routing**: resolve task types to the right agent.
-- **Persistent task bus**: store tasks, status, results, and errors in SQLite.
-- **Worker execution**: run mock agents or local CLI agents.
-- **Durable messages**: send and read cross-agent messages.
-- **Doctor checks**: verify local health and public-release readiness.
-- **Real-agent bridge**: configure Codex, Claude Code, Hermes, or any CLI command without changing source code.
+- **Routing**: resolve task types to the right agent, including opposite-agent review.
+- **Durable bus**: store tasks, status, results, errors, and messages in SQLite.
+- **Worker model**: pull queued tasks and execute mock agents or real local CLIs.
+- **Command adapters**: connect Codex, Claude Code, Hermes, or any CLI through JSON-array commands.
+- **Local health checks**: verify Python, SQLite, route config, agent config, and publish readiness.
+- **Safety boundaries**: block self-delegation, cap delegation depth, enforce allowed working directories, and scan public trees.
 
-## When To Use It
+## Technical Highlights
 
-Use Trinity Lite when you want a small, local, reproducible base for:
+- **Zero runtime dependencies**: standard-library Python package.
+- **SQLite-first state**: local, inspectable, transactional task storage.
+- **Shell-safe command execution**: command adapters use JSON arrays and `shell=False`.
+- **Mock-to-real upgrade path**: run the full demo before installing real agent CLIs.
+- **CI-backed public release**: tests, compile checks, and doctor checks run in GitHub Actions.
+- **Designed for extension**: MCP server and orchestrator are planned as optional layers, not required for the core bus.
 
-- demonstrating multi-agent task flow;
-- testing agent routing rules;
-- building a reproducible version of an agent workflow;
-- teaching how Codex, Claude Code, and other CLI agents can cooperate through a shared bus.
+## Product Positioning
+
+Trinity Lite sits between "single-agent CLI tools" and "full agent frameworks":
+
+```text
+Codex / Claude Code / custom CLI
+        |
+        v
+Trinity Lite: route -> bus -> worker -> result
+        |
+        v
+future layers: MCP server, orchestrator, tracing, dashboard
+```
+
+It does not try to replace agent frameworks. It provides a lightweight coordination layer for the AI tools developers already use.
 
 ## Quick Start
 
@@ -91,6 +150,15 @@ Agent commands are configured as JSON arrays and run with `shell=False`.
 
 See [docs/REAL_AGENTS.md](docs/REAL_AGENTS.md) for Codex, Claude Code, and generic CLI examples.
 
+## Roadmap
+
+- **v0.1.x**: harden the public local bus, docs, examples, and tests.
+- **v0.2**: add a minimal MCP server so AI clients can call Trinity Lite directly.
+- **v0.3**: add an optional orchestrator for primary work -> review -> doctor/tests -> acceptance.
+- **v1.0**: stabilize CLI, schema, and packaging.
+
+See [ROADMAP.md](ROADMAP.md).
+
 ## Core Commands
 
 ```bash
@@ -113,6 +181,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 - [Trinity Lite tutorial](docs/TRINITY_LITE.md)
 - [Real agent command setup](docs/REAL_AGENTS.md)
+- [Product positioning](docs/PRODUCT.md)
 - [Security notes](docs/SECURITY.md)
 - [Roadmap](ROADMAP.md)
 - [Changelog](CHANGELOG.md)

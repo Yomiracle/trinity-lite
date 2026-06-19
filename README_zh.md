@@ -5,11 +5,34 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/Yomiracle/trinity-lite)](https://github.com/Yomiracle/trinity-lite/releases)
 
-**一个可公开、可复现、可扩展的三 Agent 任务总线。**
+**面向 AI 编程 Agent 的本地优先多 Agent 工作流基础设施。**
 
-Trinity Lite 把多 Agent 协作变成一个可检查、可运行的本地工程流程：router 判断任务给谁，SQLite bus 持久化任务，worker 执行 agent，最后可以查询状态和结果。默认 mock agent 能让任何人先跑通完整链路，再逐步接入真实 Codex、Claude Code、Hermes 或其他 CLI agent。
+Trinity Lite 给 Codex、Claude Code、Hermes 和任意 CLI agent 提供一条共享任务总线：路由任务、用 SQLite 持久化状态、由 worker 执行任务、记录结果，并能在命令行里检查完整流程。
 
 [English README](README.md)
+
+## 为什么需要 Trinity Lite
+
+单个 AI 编程 agent 已经很强，但多 agent 协作经常还是靠人工调度：
+
+| 手工协作方式 | Trinity Lite 方式 |
+|--------------|-------------------|
+| 在多个工具之间复制结果 | 通过共享 bus 派发任务 |
+| 靠人脑记任务状态 | SQLite 保存状态和结果 |
+| 手动决定谁做、谁审 | 按任务类型或指定 agent 路由 |
+| 失败原因容易丢失 | error、result、message 都可查询 |
+| demo 依赖已安装的真实 agent | mock agent 本地即可跑完整流程 |
+
+Trinity Lite 把“同一台机器上的多个 AI 工具”变成一个小型、可复现、可扩展的 agent 工作流层。
+
+## 面向谁
+
+| 用户 | Trinity Lite 帮你做什么 |
+|------|--------------------------|
+| AI 开发者 | 快速原型化多 Agent 编程工作流 |
+| Agent 工作流构建者 | 测试路由、任务持久化、二审交接和 worker 执行 |
+| 独立开发者 / 小团队 | 不搭服务器也能协调本地 CLI agent |
+| 技术博主 / 教学者 | 用别人能跑的命令展示真实多 Agent 流程 |
 
 ## 30 秒跑通
 
@@ -25,12 +48,30 @@ trinity-lite tasks
 
 默认 agent 是 mock 模式，所以别人没有安装 Codex、Claude Code、Hermes，也能先跑通 demo。
 
-## 它解决什么问题
-
-普通多 Agent 很容易变成“几个 AI 互相聊天”。Trinity Lite 做的是更工程化的协作：
+## 工作方式
 
 ```text
-用户任务 -> router 判断谁做 -> SQLite task bus 持久化 -> worker 执行 -> 结果可查询
+                  +----------------+
+用户任务 -------> | router         |
+                  +-------+--------+
+                          |
+                          v
+                  +-------+--------+
+                  | SQLite task bus|
+                  +-------+--------+
+                          |
+          +---------------+----------------+
+          v                                v
+   +------+-------+                 +------+-------+
+   | Codex worker |                 | 二审 worker |
+   +------+-------+                 +------+-------+
+          |                                |
+          v                                v
+   agent adapter                    agent adapter
+          |                                |
+          +---------------+----------------+
+                          v
+                    status / result / inbox
 ```
 
 默认角色：
@@ -43,21 +84,37 @@ trinity-lite tasks
 
 ## 核心能力
 
-- **自动路由**：根据任务类型决定交给哪个 agent。
-- **SQLite 任务总线**：持久化任务、状态、结果和错误。
-- **Worker 执行模型**：支持 mock agent，也支持真实本地 CLI agent。
-- **跨 Agent 消息**：通过 inbox/message 做持久化沟通。
-- **Doctor 检查**：检查运行环境和公开发布状态。
-- **真实 Agent 接入**：不用改源码，通过本地 JSON 配置接入 Codex、Claude Code、Hermes 或任意 CLI。
+- **任务路由**：根据任务类型决定交给哪个 agent，也支持 opposite-agent 二审。
+- **持久化总线**：SQLite 保存任务、状态、结果、错误和消息。
+- **Worker 模型**：worker 拉取 queued task，执行 mock agent 或真实本地 CLI。
+- **命令适配器**：通过 JSON array command 接入 Codex、Claude Code、Hermes 或任意 CLI。
+- **本地健康检查**：检查 Python、SQLite、routes、agents 和发布扫描状态。
+- **安全边界**：禁止自派发、限制派发深度、限制 cwd 范围、扫描公开发布目录。
 
-## 适合展示什么
+## 技术亮点
 
-Trinity Lite 适合用来展示：
+- **零运行时依赖**：标准库 Python 包。
+- **SQLite-first 状态层**：本地、可检查、事务化的任务存储。
+- **shell-safe 命令执行**：命令使用 JSON array，并通过 `shell=False` 执行。
+- **mock 到真实 agent 的升级路径**：先跑通完整流程，再接真实 CLI agent。
+- **CI 支撑的公开发布**：GitHub Actions 运行测试、编译检查和 doctor。
+- **为扩展预留边界**：MCP server、orchestrator、tracing、dashboard 都可以作为后续层添加。
 
-- 多 Agent 不是互相聊天，而是有路由、有任务、有状态的工程流程；
-- Codex / Claude Code / Hermes 可以通过共享 bus 协作；
-- 复杂 agent 系统可以抽出一个公开、可复现、可学习的 Lite 版本；
-- 从 mock demo 到真实 agent 接入的完整升级路径。
+## 产品定位
+
+Trinity Lite 位于“单个 agent CLI 工具”和“完整 agent 框架”之间：
+
+```text
+Codex / Claude Code / custom CLI
+        |
+        v
+Trinity Lite: route -> bus -> worker -> result
+        |
+        v
+后续层：MCP server、orchestrator、tracing、dashboard
+```
+
+它不是要替代 agent 框架，而是给开发者已经在用的 AI 工具加一层轻量协作基础设施。
 
 ## 快速开始
 
@@ -98,12 +155,22 @@ trinity-lite worker codex --once --agents agents.local.json
 
 真实 Codex / Claude Code / 通用 CLI 接入方式见：[docs/REAL_AGENTS.md](docs/REAL_AGENTS.md)。
 
+## 路线图
+
+- **v0.1.x**：打磨公开版本地任务总线、文档、示例和测试。
+- **v0.2**：增加最小 MCP server，让 AI 客户端能直接调用 Trinity Lite。
+- **v0.3**：增加可选 orchestrator，自动执行“主任务 -> 二审 -> doctor/tests -> 验收”。
+- **v1.0**：稳定 CLI、SQLite schema 和包发布流程。
+
+见：[ROADMAP.md](ROADMAP.md)。
+
 ## 文档
 
 - [架构](docs/ARCHITECTURE.md)
 - [安全说明](docs/SECURITY.md)
 - [教程](docs/TRINITY_LITE.md)
 - [真实 Agent 接入](docs/REAL_AGENTS.md)
+- [产品定位](docs/PRODUCT.md)
 - [路线图](ROADMAP.md)
 - [变更日志](CHANGELOG.md)
 - [贡献指南](CONTRIBUTING.md)
