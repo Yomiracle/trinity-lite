@@ -1,5 +1,7 @@
+import io
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
 
 from trinity_lite.cli import main
@@ -10,17 +12,19 @@ class CliTest(unittest.TestCase):
         with tempfile.TemporaryDirectory(dir=str(Path.home())) as tmp:
             root = Path(tmp)
             db = root / "bus.db"
-            code = main([
-                "dispatch-auto",
-                "implement a parser",
-                "--db",
-                str(db),
-                "--cwd",
-                str(root),
-            ])
-            self.assertEqual(code, 0)
-            code = main(["worker", "codex", "--once", "--db", str(db)])
-            self.assertEqual(code, 0)
+            output = io.StringIO()
+            with redirect_stdout(output):
+                code = main([
+                    "dispatch-auto",
+                    "implement a parser",
+                    "--db",
+                    str(db),
+                    "--cwd",
+                    str(root),
+                ])
+                self.assertEqual(code, 0)
+                code = main(["worker", "codex", "--once", "--db", str(db)])
+                self.assertEqual(code, 0)
 
 
 if __name__ == "__main__":
