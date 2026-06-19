@@ -1,10 +1,29 @@
 # Trinity Lite
 
+[![Tests](https://github.com/Yomiracle/trinity-lite/actions/workflows/test.yml/badge.svg)](https://github.com/Yomiracle/trinity-lite/actions/workflows/test.yml)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](pyproject.toml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/Yomiracle/trinity-lite)](https://github.com/Yomiracle/trinity-lite/releases)
+
 **一个可公开、可复现、已脱敏的三 Agent 任务总线。**
 
 Trinity Lite 是 Trinity 私有系统的公开最小版。它保留三 Agent 协作里最有价值的部分：任务派发、路由、SQLite 总线、worker、mock agent、消息、doctor 和安全检查；同时剥离私有 token、真实数据库、本机路径、模型网关、日志和个人记忆。
 
 [English README](README.md)
+
+## 30 秒跑通
+
+```bash
+git clone https://github.com/Yomiracle/trinity-lite.git
+cd trinity-lite
+python3 -m pip install -e .
+trinity-lite doctor --scan-root .
+trinity-lite dispatch-auto "implement a hello-world function"
+trinity-lite worker codex --once
+trinity-lite tasks
+```
+
+默认 agent 是 mock 模式，所以别人没有安装 Codex、Claude Code、Hermes，也能先跑通 demo。
 
 ## 它解决什么问题
 
@@ -42,8 +61,6 @@ trinity-lite worker codex --once
 trinity-lite tasks
 ```
 
-默认 agent 是 mock 模式，所以别人没有安装 Codex、Claude Code、Hermes，也能先跑通 demo。
-
 ## 接入真实 Agent
 
 复制示例配置：
@@ -60,6 +77,8 @@ trinity-lite worker codex --once --agents agents.local.json
 ```
 
 命令用 JSON array 配置，并用 `shell=False` 执行，避免 shell 注入。
+
+真实 Codex / Claude Code / 通用 CLI 接入方式见：[docs/REAL_AGENTS.md](docs/REAL_AGENTS.md)。
 
 ## 绝不公开的东西
 
@@ -85,3 +104,7 @@ python3 -m unittest discover -s tests -v
 - [架构](docs/ARCHITECTURE.md)
 - [安全说明](docs/SECURITY.md)
 - [教程](docs/TRINITY_LITE.md)
+- [真实 Agent 接入](docs/REAL_AGENTS.md)
+- [路线图](ROADMAP.md)
+- [变更日志](CHANGELOG.md)
+- [贡献指南](CONTRIBUTING.md)

@@ -1,10 +1,29 @@
 # Trinity Lite
 
+[![Tests](https://github.com/Yomiracle/trinity-lite/actions/workflows/test.yml/badge.svg)](https://github.com/Yomiracle/trinity-lite/actions/workflows/test.yml)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](pyproject.toml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/Yomiracle/trinity-lite)](https://github.com/Yomiracle/trinity-lite/releases)
+
 **A minimal public three-agent task bus for Codex, Claude Code, Hermes, or any CLI-based agent.**
 
 Trinity Lite is the safe, public version of a private three-agent workflow. It keeps the useful parts: persistent dispatch, routing, workers, durable messages, mock agents, and safety checks. It does not include private keys, local logs, model gateways, personal memories, or machine-specific configuration.
 
 [中文 README](README_zh.md)
+
+## 30-Second Demo
+
+```bash
+git clone https://github.com/Yomiracle/trinity-lite.git
+cd trinity-lite
+python3 -m pip install -e .
+trinity-lite doctor --scan-root .
+trinity-lite dispatch-auto "implement a hello-world function"
+trinity-lite worker codex --once
+trinity-lite tasks
+```
+
+The default agents are mock agents, so this demo works even if Codex, Claude Code, or Hermes are not installed.
 
 ## What It Does
 
@@ -40,8 +59,6 @@ trinity-lite worker codex --once
 trinity-lite tasks
 ```
 
-The default agents are mock agents, so the demo works even if Codex, Claude Code, or Hermes are not installed.
-
 ## Use Real Agent Commands
 
 Copy the command example and edit it for your machine:
@@ -53,6 +70,8 @@ trinity-lite worker codex --once --agents agents.local.json
 ```
 
 Agent commands are configured as JSON arrays and run with `shell=False`.
+
+See [docs/REAL_AGENTS.md](docs/REAL_AGENTS.md) for Codex, Claude Code, and generic CLI examples.
 
 ## Core Commands
 
@@ -84,6 +103,15 @@ See [docs/SECURITY.md](docs/SECURITY.md).
 ## Architecture
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+## Project Docs
+
+- [Trinity Lite tutorial](docs/TRINITY_LITE.md)
+- [Real agent command setup](docs/REAL_AGENTS.md)
+- [Security notes](docs/SECURITY.md)
+- [Roadmap](ROADMAP.md)
+- [Changelog](CHANGELOG.md)
+- [Contributing](CONTRIBUTING.md)
 
 ## License
 
