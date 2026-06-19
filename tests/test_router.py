@@ -22,6 +22,11 @@ class RouterTest(unittest.TestCase):
         self.assertEqual(route["agent"], "claude_code")
         self.assertEqual(route["task_type"], "code_review")
 
+    def test_chinese_secondary_review_routes_to_opposite(self):
+        route = resolve_route("二审", previous_agent="codex")
+        self.assertEqual(route["agent"], "claude_code")
+        self.assertEqual(route["task_type"], "code_review")
+
     def test_opposite_requires_previous_agent(self):
         with self.assertRaises(RouteError):
             resolve_route("review patch", task_type="code_review")

@@ -26,7 +26,7 @@ DEFAULT_OPPOSITES = {
 }
 
 DEFAULT_PATTERNS = [
-    (re.compile(r"(review|审查|二审|复核).*(patch|diff|改动|输出|result)", re.I), "code_review"),
+    (re.compile(r"(二审|复核)|(review|审查).*(patch|diff|改动|输出|result)", re.I), "code_review"),
     (re.compile(r"(audit|全面审查|项目审查|仓库审查|代码库审查)", re.I), "project_audit"),
     (re.compile(r"(implement|build|fix|实现|修复|开发|写代码)", re.I), "implementation"),
     (re.compile(r"(test|测试|验证)", re.I), "testing"),
