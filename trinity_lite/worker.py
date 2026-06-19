@@ -24,6 +24,8 @@ def run_once(
     try:
         result = build_adapter(spec).run(task)
         return bus.finish_worker(task["id"], result=result)
+    except (KeyboardInterrupt, SystemExit, MemoryError):
+        raise
     except Exception as exc:
         return bus.finish_worker(task["id"], error=str(exc))
 

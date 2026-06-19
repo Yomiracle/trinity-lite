@@ -2,6 +2,7 @@ import tempfile
 import unittest
 import json
 from pathlib import Path
+from unittest.mock import patch
 
 from trinity_lite.bus import TrinityBus
 from trinity_lite.worker import run_once
@@ -46,6 +47,20 @@ class WorkerTest(unittest.TestCase):
             self.assertEqual(done["id"], task["id"])
             self.assertEqual(done["status"], "failed")
             self.assertIn("executable not found", done["error"])
+
+    def test_memory_error_is_not_swallowed(self):
+        class OomAdapter:
+            def run(self, task):
+                raise MemoryError("oom")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bus = TrinityBus(root / "bus.db", allowed_roots=[root])
+            task = bus.submit_task("user", "codex", "work", cwd=root)
+            with patch("trinity_lite.worker.build_adapter", return_value=OomAdapter()):
+                with self.assertRaises(MemoryError):
+                    run_once("codex", bus)
+            self.assertEqual(bus.get_task(task["id"])["status"], "running")
 
 
 if __name__ == "__main__":

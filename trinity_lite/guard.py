@@ -56,31 +56,51 @@ def scan_public_tree(root: str | os.PathLike[str]) -> list[str]:
     """Return publish blockers found under a tree."""
     root_path = Path(root).resolve()
     issues: list[str] = []
-    for path in root_path.rglob("*"):
-        rel = path.relative_to(root_path)
-        if ".git" in path.parts or "__pycache__" in path.parts:
+    for current, dirnames, filenames in os.walk(root_path, followlinks=False):
+        current_path = Path(current)
+        rel_current = current_path.relative_to(root_path)
+        if ".git" in rel_current.parts or "__pycache__" in rel_current.parts:
+            dirnames[:] = []
             continue
-        if path.is_symlink():
-            issues.append(f"symlink is not allowed in public tree: {rel}")
-            continue
-        if path.is_dir():
-            continue
-        if path.suffix == ".pyc":
-            continue
-        if path.name in BLOCKED_PUBLIC_NAMES:
-            issues.append(f"blocked runtime/private file: {rel}")
-        if path.suffix in {".db", ".sqlite", ".log"}:
-            issues.append(f"blocked runtime artifact: {rel}")
-        try:
-            size = path.stat().st_size
-        except FileNotFoundError:
-            continue
-        if size > 512_000:
-            continue
-        try:
-            content = path.read_text(encoding="utf-8")
-        except UnicodeDecodeError:
-            continue
-        if redact_secrets(content) != content:
-            issues.append(f"possible secret in: {rel}")
+        for dirname in list(dirnames):
+            directory = current_path / dirname
+            rel = directory.relative_to(root_path)
+            if directory.is_symlink():
+                issues.append(f"symlink is not allowed in public tree: {rel}")
+                dirnames.remove(dirname)
+                continue
+            if dirname in {".git", "__pycache__"}:
+                dirnames.remove(dirname)
+        for filename in filenames:
+            path = current_path / filename
+            rel = path.relative_to(root_path)
+            if path.is_symlink():
+                issues.append(f"symlink is not allowed in public tree: {rel}")
+                continue
+            if ".git" in rel.parts or "__pycache__" in rel.parts:
+                continue
+            issues.extend(_scan_public_file(path, rel))
+    return issues
+
+
+def _scan_public_file(path: Path, rel: Path) -> list[str]:
+    issues: list[str] = []
+    if path.suffix == ".pyc":
+        return issues
+    if path.name in BLOCKED_PUBLIC_NAMES:
+        issues.append(f"blocked runtime/private file: {rel}")
+    if path.suffix in {".db", ".sqlite", ".log"}:
+        issues.append(f"blocked runtime artifact: {rel}")
+    try:
+        size = path.stat().st_size
+    except FileNotFoundError:
+        return issues
+    if size > 512_000:
+        return issues
+    try:
+        content = path.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        return issues
+    if redact_secrets(content) != content:
+        issues.append(f"possible secret in: {rel}")
     return issues

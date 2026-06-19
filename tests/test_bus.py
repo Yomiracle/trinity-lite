@@ -34,6 +34,33 @@ class BusTest(unittest.TestCase):
         with self.assertRaises(GuardError):
             self.bus.submit_task("user", "codex", "escape", cwd="/")
 
+    def test_connection_context_rolls_back_on_exception(self):
+        with self.assertRaises(RuntimeError):
+            with self.bus.connect() as conn:
+                conn.execute(
+                    """
+                    INSERT INTO tasks (
+                        id, source_agent, target_agent, prompt, cwd,
+                        status, depth, created_at, heartbeat_at
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        "rollback-test",
+                        "user",
+                        "codex",
+                        "work",
+                        str(self.root),
+                        "queued",
+                        0,
+                        "2026-01-01T00:00:00+00:00",
+                        "2026-01-01T00:00:00+00:00",
+                    ),
+                )
+                raise RuntimeError("force rollback")
+        with self.assertRaises(KeyError):
+            self.bus.get_task("rollback-test")
+
     def test_message_round_trip(self):
         msg = self.bus.send_message("codex", "claude_code", "please review")
         self.assertEqual(msg["read"], 0)

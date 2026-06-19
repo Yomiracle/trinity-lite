@@ -33,6 +33,20 @@ class GuardTest(unittest.TestCase):
             issues = scan_public_tree(root)
             self.assertTrue(any("symlink is not allowed" in i for i in issues))
 
+    def test_scan_public_tree_does_not_follow_directory_symlinks(self):
+        with tempfile.TemporaryDirectory() as tmp, tempfile.TemporaryDirectory() as external:
+            root = Path(tmp)
+            outside = Path(external)
+            fake_value = "s" + "k-" + "abcdefghijklmnopqrstuvwxyz"
+            (outside / "secret.txt").write_text("TO" + "KEN=" + fake_value, encoding="utf-8")
+            try:
+                (root / "linked_dir").symlink_to(outside, target_is_directory=True)
+            except OSError:
+                self.skipTest("symlinks are not available on this filesystem")
+            issues = scan_public_tree(root)
+            self.assertTrue(any("symlink is not allowed" in i for i in issues))
+            self.assertFalse(any("possible secret" in i for i in issues))
+
     def test_scan_public_tree_skips_pycache(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
