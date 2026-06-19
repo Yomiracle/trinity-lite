@@ -5,9 +5,9 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/Yomiracle/trinity-lite)](https://github.com/Yomiracle/trinity-lite/releases)
 
-**一个可公开、可复现、已脱敏的三 Agent 任务总线。**
+**一个可公开、可复现、可扩展的三 Agent 任务总线。**
 
-Trinity Lite 是 Trinity 私有系统的公开最小版。它保留三 Agent 协作里最有价值的部分：任务派发、路由、SQLite 总线、worker、mock agent、消息、doctor 和安全检查；同时剥离私有 token、真实数据库、本机路径、模型网关、日志和个人记忆。
+Trinity Lite 把多 Agent 协作变成一个可检查、可运行的本地工程流程：router 判断任务给谁，SQLite bus 持久化任务，worker 执行 agent，最后可以查询状态和结果。默认 mock agent 能让任何人先跑通完整链路，再逐步接入真实 Codex、Claude Code、Hermes 或其他 CLI agent。
 
 [English README](README.md)
 
@@ -40,6 +40,24 @@ trinity-lite tasks
 | `codex` | 实现、测试、项目审查 |
 | `claude_code` | 二审、复核、交叉检查 |
 | `hermes` | 编排、验收 |
+
+## 核心能力
+
+- **自动路由**：根据任务类型决定交给哪个 agent。
+- **SQLite 任务总线**：持久化任务、状态、结果和错误。
+- **Worker 执行模型**：支持 mock agent，也支持真实本地 CLI agent。
+- **跨 Agent 消息**：通过 inbox/message 做持久化沟通。
+- **Doctor 检查**：检查运行环境和公开发布状态。
+- **真实 Agent 接入**：不用改源码，通过本地 JSON 配置接入 Codex、Claude Code、Hermes 或任意 CLI。
+
+## 适合展示什么
+
+Trinity Lite 适合用来展示：
+
+- 多 Agent 不是互相聊天，而是有路由、有任务、有状态的工程流程；
+- Codex / Claude Code / Hermes 可以通过共享 bus 协作；
+- 复杂 agent 系统可以抽出一个公开、可复现、可学习的 Lite 版本；
+- 从 mock demo 到真实 agent 接入的完整升级路径。
 
 ## 快速开始
 
@@ -79,25 +97,6 @@ trinity-lite worker codex --once --agents agents.local.json
 命令用 JSON array 配置，并用 `shell=False` 执行，避免 shell 注入。
 
 真实 Codex / Claude Code / 通用 CLI 接入方式见：[docs/REAL_AGENTS.md](docs/REAL_AGENTS.md)。
-
-## 绝不公开的东西
-
-这个公开版不包含：
-
-- API key / OAuth token
-- `.env`
-- 真实任务数据库
-- 个人记忆和日志
-- SmartRouter / PM2 / 私有模型网关配置
-- `/Users/...` 这种本机路径
-- 私有 Hermes 身份文件
-
-发布前运行：
-
-```bash
-trinity-lite doctor --scan-root .
-python3 -m unittest discover -s tests -v
-```
 
 ## 文档
 

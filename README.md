@@ -5,9 +5,9 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/Yomiracle/trinity-lite)](https://github.com/Yomiracle/trinity-lite/releases)
 
-**A minimal public three-agent task bus for Codex, Claude Code, Hermes, or any CLI-based agent.**
+**A reproducible three-agent task bus for Codex, Claude Code, Hermes, or any CLI-based agent.**
 
-Trinity Lite is the safe, public version of a private three-agent workflow. It keeps the useful parts: persistent dispatch, routing, workers, durable messages, mock agents, and safety checks. It does not include private keys, local logs, model gateways, personal memories, or machine-specific configuration.
+Trinity Lite turns multi-agent collaboration into an inspectable local workflow: route a task, persist it in SQLite, let a worker execute it, and read the result later. It starts with mock agents so anyone can run the full loop, then scales to real CLI agents through local command adapters.
 
 [中文 README](README_zh.md)
 
@@ -38,6 +38,24 @@ Default roles are configurable:
 | `codex` | primary implementation, testing, project audit |
 | `claude_code` | secondary review and cross-check |
 | `hermes` | orchestration and acceptance |
+
+## Core Capabilities
+
+- **Automatic routing**: resolve task types to the right agent.
+- **Persistent task bus**: store tasks, status, results, and errors in SQLite.
+- **Worker execution**: run mock agents or local CLI agents.
+- **Durable messages**: send and read cross-agent messages.
+- **Doctor checks**: verify local health and public-release readiness.
+- **Real-agent bridge**: configure Codex, Claude Code, Hermes, or any CLI command without changing source code.
+
+## When To Use It
+
+Use Trinity Lite when you want a small, local, reproducible base for:
+
+- demonstrating multi-agent task flow;
+- testing agent routing rules;
+- building a reproducible version of an agent workflow;
+- teaching how Codex, Claude Code, and other CLI agents can cooperate through a shared bus.
 
 ## Quick Start
 
@@ -86,19 +104,6 @@ trinity-lite send claude_code "please review task abc"
 trinity-lite inbox claude_code
 trinity-lite doctor --scan-root .
 ```
-
-## Safety Rules
-
-Trinity Lite intentionally excludes private runtime state:
-
-- no `.env`
-- no API keys or OAuth tokens
-- no local SmartRouter or PM2 config
-- no private SQLite task databases
-- no personal memories, logs, or shell history
-- no hardcoded `/Users/...` paths
-
-See [docs/SECURITY.md](docs/SECURITY.md).
 
 ## Architecture
 
