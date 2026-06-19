@@ -1,0 +1,19 @@
+{
+  "agents": {
+    "codex": {
+      "mode": "command",
+      "command": ["codex", "exec", "-C", "{cwd}", "{prompt}"],
+      "timeout": 1800
+    },
+    "claude_code": {
+      "mode": "command",
+      "command": ["claude", "-p", "{prompt}"],
+      "timeout": 1800
+    },
+    "hermes": {
+      "mode": "command",
+      "command": ["hermes", "-z", "{prompt}"],
+      "timeout": 1800
+    }
+  }
+}

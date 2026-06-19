@@ -1,0 +1,19 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.venv/
+dist/
+build/
+*.egg-info/
+
+# Runtime state
+.trinity-lite/
+*.db
+*.sqlite
+*.log
+.env
+
+# Local/private config
+agents.local.json
+routes.local.json

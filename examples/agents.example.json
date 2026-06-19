@@ -1,0 +1,16 @@
+{
+  "agents": {
+    "codex": {
+      "mode": "mock",
+      "timeout": 1800
+    },
+    "claude_code": {
+      "mode": "mock",
+      "timeout": 1800
+    },
+    "hermes": {
+      "mode": "mock",
+      "timeout": 1800
+    }
+  }
+}

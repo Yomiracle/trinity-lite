@@ -1,0 +1,17 @@
+{
+  "routes": {
+    "implementation": {"agent": "codex", "review_required": true},
+    "testing": {"agent": "codex", "review_required": true},
+    "project_audit": {"agent": "codex", "review_required": true},
+    "architecture_design": {"agent": "codex", "review_required": true},
+    "code_review": {"agent": "opposite", "review_required": false},
+    "secondary_review": {"agent": "claude_code", "review_required": false},
+    "orchestration": {"agent": "hermes", "review_required": false},
+    "acceptance": {"agent": "hermes", "review_required": false}
+  },
+  "opposites": {
+    "codex": "claude_code",
+    "claude_code": "codex",
+    "hermes": "claude_code"
+  }
+}
