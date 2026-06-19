@@ -27,5 +27,10 @@ dependencies = []
 [project.scripts]
 trinity-lite = "trinity_lite.cli:main"
 
+[project.urls]
+Homepage = "https://github.com/Yomiracle/trinity-lite"
+Repository = "https://github.com/Yomiracle/trinity-lite"
+Issues = "https://github.com/Yomiracle/trinity-lite/issues"
+
 [tool.setuptools]
 packages = ["trinity_lite"]

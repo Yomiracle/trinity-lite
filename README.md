@@ -4,6 +4,8 @@
 
 Trinity Lite is the safe, public version of a private three-agent workflow. It keeps the useful parts: persistent dispatch, routing, workers, durable messages, mock agents, and safety checks. It does not include private keys, local logs, model gateways, personal memories, or machine-specific configuration.
 
+[中文 README](README_zh.md)
+
 ## What It Does
 
 ```text
