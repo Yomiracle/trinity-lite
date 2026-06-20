@@ -73,6 +73,14 @@ def build_parser() -> argparse.ArgumentParser:
 
     doctor = sub.add_parser("doctor", parents=[common], help="run environment checks")
     doctor.add_argument("--scan-root")
+    doctor.add_argument("--runtime-root", help="runtime state directory for hygiene checks")
+    doctor.add_argument(
+        "--retired-port",
+        action="append",
+        type=int,
+        default=[],
+        help="TCP port that should not be listening, repeatable",
+    )
 
     return parser
 
@@ -132,7 +140,14 @@ def run_command(args: argparse.Namespace) -> int:
         print_json(bus.inbox(args.agent, unread_only=not args.all, mark_read=args.mark_read, limit=args.limit))
         return 0
     if args.command == "doctor":
-        print_json(run_doctor(args.db, args.routes, args.agents, args.scan_root))
+        print_json(run_doctor(
+            args.db,
+            args.routes,
+            args.agents,
+            args.scan_root,
+            args.runtime_root,
+            args.retired_port,
+        ))
         return 0
     raise AssertionError(f"unhandled command: {args.command}")
 

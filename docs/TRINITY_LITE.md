@@ -42,3 +42,15 @@ trinity-lite worker codex --once --agents agents.local.json
 ```
 
 Keep local command config out of git.
+
+## 6. Optional Runtime Hygiene
+
+For a long-running local install, keep runtime files outside the repository and
+check them explicitly:
+
+```bash
+trinity-lite doctor --runtime-root ~/.trinity-lite --retired-port 9797
+```
+
+Skip this step for the default mock demo. It is for installations that maintain a
+metrics log and retire local helper services over time.

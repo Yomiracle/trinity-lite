@@ -21,6 +21,15 @@ class GuardTest(unittest.TestCase):
             self.assertTrue(any("blocked runtime/private file" in i for i in issues))
             self.assertTrue(any("possible secret" in i for i in issues))
 
+    def test_scan_public_tree_blocks_retired_runtime_artifacts(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "codeproxy.pid").write_text("123", encoding="utf-8")
+            (root / "trinity_learn.db-wal").write_text("", encoding="utf-8")
+            issues = scan_public_tree(root)
+            self.assertTrue(any("codeproxy.pid" in i for i in issues))
+            self.assertTrue(any("trinity_learn.db-wal" in i for i in issues))
+
     def test_scan_public_tree_blocks_symlinks(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

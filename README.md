@@ -88,7 +88,7 @@ Default roles are configurable:
 - **Durable bus**: store tasks, status, results, errors, and messages in SQLite.
 - **Worker model**: pull queued tasks and execute mock agents or real local CLIs.
 - **Command adapters**: connect Codex, Claude Code, Hermes, or any CLI through JSON-array commands.
-- **Local health checks**: verify Python, SQLite, route config, agent config, and publish readiness.
+- **Local health checks**: verify Python, SQLite, route config, agent config, publish readiness, and optional runtime hygiene.
 - **Safety boundaries**: block self-delegation, cap delegation depth, enforce allowed working directories, and scan public trees.
 
 ## Technical Highlights
@@ -173,6 +173,13 @@ trinity-lite inbox claude_code
 trinity-lite doctor --scan-root .
 ```
 
+For long-running local installs that maintain a metrics log, add runtime hygiene
+checks:
+
+```bash
+trinity-lite doctor --runtime-root ~/.trinity-lite --retired-port 9797
+```
+
 ## Architecture
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
@@ -182,6 +189,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 - [Trinity Lite tutorial](docs/TRINITY_LITE.md)
 - [Real agent command setup](docs/REAL_AGENTS.md)
 - [Product positioning](docs/PRODUCT.md)
+- [Operations guide](docs/OPERATIONS.md)
 - [Security notes](docs/SECURITY.md)
 - [Roadmap](ROADMAP.md)
 - [Changelog](CHANGELOG.md)

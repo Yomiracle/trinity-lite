@@ -12,7 +12,7 @@ Trinity Lite is intentionally small. It is not a model gateway and not a full ag
 | `trinity_lite.worker` | pulls queued tasks and executes an adapter |
 | `trinity_lite.cli` | command line interface |
 | `trinity_lite.guard` | path and secret-scan safety helpers |
-| `trinity_lite.doctor` | environment and publish-readiness checks |
+| `trinity_lite.doctor` | environment, publish-readiness, and optional runtime hygiene checks |
 
 ## Data Flow
 
@@ -60,3 +60,17 @@ Commands are executed with `shell=False`. If no `{prompt}` placeholder is presen
 - No remote task execution
 - No automatic internet access
 - No production deployment assumptions
+
+## Health Boundaries
+
+`doctor --scan-root .` checks the public source tree before release. It should
+fail on private files, secrets, runtime databases, logs, metrics, symlinks, and
+known retired runtime artifacts.
+
+`doctor --runtime-root <dir>` checks a local runtime directory. This is optional
+because the public demo does not require long-running metrics, but deployed
+installations can use it to require a writable `metrics.jsonl` and reject retired
+state files.
+
+`doctor --retired-port <port>` asserts that a retired local service port is no
+longer listening.

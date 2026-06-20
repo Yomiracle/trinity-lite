@@ -88,7 +88,7 @@ trinity-lite tasks
 - **持久化总线**：SQLite 保存任务、状态、结果、错误和消息。
 - **Worker 模型**：worker 拉取 queued task，执行 mock agent 或真实本地 CLI。
 - **命令适配器**：通过 JSON array command 接入 Codex、Claude Code、Hermes 或任意 CLI。
-- **本地健康检查**：检查 Python、SQLite、routes、agents 和发布扫描状态。
+- **本地健康检查**：检查 Python、SQLite、routes、agents、发布扫描状态和可选运行态卫生。
 - **安全边界**：禁止自派发、限制派发深度、限制 cwd 范围、扫描公开发布目录。
 
 ## 技术亮点
@@ -136,6 +136,12 @@ trinity-lite worker codex --once
 trinity-lite tasks
 ```
 
+如果长期运行的本地安装维护了 metrics log，可以增加运行态卫生检查：
+
+```bash
+trinity-lite doctor --runtime-root ~/.trinity-lite --retired-port 9797
+```
+
 ## 接入真实 Agent
 
 复制示例配置：
@@ -171,6 +177,7 @@ trinity-lite worker codex --once --agents agents.local.json
 - [教程](docs/TRINITY_LITE.md)
 - [真实 Agent 接入](docs/REAL_AGENTS.md)
 - [产品定位](docs/PRODUCT.md)
+- [运维指南](docs/OPERATIONS.md)
 - [路线图](ROADMAP.md)
 - [变更日志](CHANGELOG.md)
 - [贡献指南](CONTRIBUTING.md)

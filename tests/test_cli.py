@@ -33,6 +33,27 @@ class CliTest(unittest.TestCase):
         self.assertEqual(code, 2)
         self.assertIn('"error"', output.getvalue())
 
+    def test_doctor_accepts_runtime_hygiene_options(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            runtime = root / "runtime"
+            runtime.mkdir()
+            (runtime / "metrics.jsonl").write_text("", encoding="utf-8")
+            output = io.StringIO()
+            with redirect_stdout(output):
+                code = main([
+                    "doctor",
+                    "--db",
+                    str(root / "bus.db"),
+                    "--runtime-root",
+                    str(runtime),
+                    "--retired-port",
+                    "70000",
+                ])
+            self.assertEqual(code, 0)
+            self.assertIn('"runtime_metrics"', output.getvalue())
+            self.assertIn('"retired_port:70000"', output.getvalue())
+
 
 if __name__ == "__main__":
     unittest.main()

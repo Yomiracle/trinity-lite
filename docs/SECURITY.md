@@ -10,6 +10,7 @@ Trinity Lite is designed as a public, sanitized MVP. Treat it as a local develop
 - personal memories or shell history
 - machine-specific process reports
 - private model gateway configuration
+- retired runtime files such as `codeproxy.pid` or `trinity_learn.db-wal`
 
 ## Built-In Safety
 
@@ -17,7 +18,8 @@ Trinity Lite is designed as a public, sanitized MVP. Treat it as a local develop
 - Delegation depth is capped at `2`.
 - Task working directories must be inside allowed roots.
 - Agent commands are JSON arrays and run with `shell=False`.
-- `doctor --scan-root .` checks for common private files and likely secrets.
+- `doctor --scan-root .` checks for common private files, retired runtime artifacts, and likely secrets.
+- `doctor --runtime-root <dir> --retired-port <port>` can check a long-running local runtime without committing it.
 
 ## Allowed Roots
 
@@ -42,6 +44,7 @@ Then manually inspect:
 
 - No `.env`
 - No `.db`, `.sqlite`, `.log`
+- No `codeproxy.pid` or `trinity_learn.db*`
 - No real API keys
 - No hardcoded user home path
 - No private task prompt or result history

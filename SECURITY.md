@@ -26,4 +26,10 @@ python3 -m compileall -q trinity_lite
 python3 -m trinity_lite doctor --scan-root .
 ```
 
+For a long-running local runtime, add:
+
+```bash
+python3 -m trinity_lite doctor --runtime-root ~/.trinity-lite --retired-port 9797
+```
+
 See [docs/SECURITY.md](docs/SECURITY.md) for implementation details.

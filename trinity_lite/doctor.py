@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import shutil
+import socket
 import sys
 from pathlib import Path
 from typing import Any
@@ -13,11 +14,22 @@ from .guard import scan_public_tree
 from .router import load_routes
 
 
+RETIRED_RUNTIME_ARTIFACTS = {
+    "codeproxy.pid",
+    "codeproxy.log",
+    "trinity_learn.db",
+    "trinity_learn.db-wal",
+    "trinity_learn.db-shm",
+}
+
+
 def run_doctor(
     db_path: str | None = None,
     routes_path: str | None = None,
     agents_path: str | None = None,
     scan_root: str | None = None,
+    runtime_root: str | None = None,
+    retired_ports: list[int] | None = None,
 ) -> dict[str, Any]:
     checks: list[dict[str, Any]] = []
 
@@ -64,7 +76,92 @@ def run_doctor(
             "detail": issues,
         })
 
+    if runtime_root:
+        checks.extend(_runtime_checks(runtime_root))
+
+    for port in retired_ports or []:
+        checks.append(_retired_port_check(port))
+
     return {
         "status": "healthy" if all(c["ok"] for c in checks) else "unhealthy",
         "checks": checks,
     }
+
+
+def _runtime_checks(runtime_root: str) -> list[dict[str, Any]]:
+    root = Path(runtime_root).expanduser()
+    if not root.exists():
+        return [{"name": "runtime_root", "ok": False, "detail": f"missing: {root}"}]
+    if not root.is_dir():
+        return [{"name": "runtime_root", "ok": False, "detail": f"not a directory: {root}"}]
+
+    checks: list[dict[str, Any]] = [{
+        "name": "runtime_root",
+        "ok": True,
+        "detail": str(root),
+    }]
+
+    metrics = root / "metrics.jsonl"
+    if not metrics.exists():
+        checks.append({
+            "name": "runtime_metrics",
+            "ok": False,
+            "detail": f"missing: {metrics}",
+        })
+    elif not metrics.is_file():
+        checks.append({
+            "name": "runtime_metrics",
+            "ok": False,
+            "detail": f"not a file: {metrics}",
+        })
+    elif not _is_writable(metrics):
+        checks.append({
+            "name": "runtime_metrics",
+            "ok": False,
+            "detail": f"not writable: {metrics}",
+        })
+    else:
+        checks.append({
+            "name": "runtime_metrics",
+            "ok": True,
+            "detail": str(metrics),
+        })
+
+    present = sorted(name for name in RETIRED_RUNTIME_ARTIFACTS if (root / name).exists())
+    checks.append({
+        "name": "retired_runtime_artifacts",
+        "ok": not present,
+        "detail": "found: " + ", ".join(present) if present else "none",
+    })
+    return checks
+
+
+def _is_writable(path: Path) -> bool:
+    try:
+        with path.open("a", encoding="utf-8"):
+            return True
+    except OSError:
+        return False
+
+
+def _retired_port_check(port: int) -> dict[str, Any]:
+    if port < 1 or port > 65535:
+        return {
+            "name": f"retired_port:{port}",
+            "ok": False,
+            "detail": "invalid TCP port",
+        }
+    listening = _can_connect("127.0.0.1", port)
+    return {
+        "name": f"retired_port:{port}",
+        "ok": not listening,
+        "detail": "free" if not listening else f"listening on 127.0.0.1:{port}",
+    }
+
+
+def _can_connect(host: str, port: int) -> bool:
+    try:
+        with socket.create_connection((host, port), timeout=0.2):
+            return True
+    except OSError:
+        return False

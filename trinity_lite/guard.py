@@ -16,7 +16,12 @@ SECRET_PATTERNS = [
 BLOCKED_PUBLIC_NAMES = {
     ".env",
     "auth.json",
+    "codeproxy.pid",
+    "codeproxy.log",
     "trinity_bus.db",
+    "trinity_learn.db",
+    "trinity_learn.db-wal",
+    "trinity_learn.db-shm",
     "trinity_state.json",
     "metrics.jsonl",
 }
