@@ -10,6 +10,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from .config import string_list
+
 
 @dataclass
 class AgentSpec:
@@ -17,6 +19,9 @@ class AgentSpec:
     mode: str = "mock"
     command: list[str] | None = None
     timeout: int = 1800
+    roles: list[str] | None = None
+    capabilities: list[str] | None = None
+    priority: int = 0
 
 
 class AdapterError(RuntimeError):
@@ -78,9 +83,30 @@ class CommandAdapter(BaseAdapter):
 
 def default_specs() -> dict[str, AgentSpec]:
     return {
-        "codex": AgentSpec(agent_id="codex"),
-        "claude_code": AgentSpec(agent_id="claude_code"),
-        "hermes": AgentSpec(agent_id="hermes"),
+        "codex": AgentSpec(
+            agent_id="codex",
+            roles=["primary_engineer"],
+            capabilities=[
+                "architecture_design",
+                "code_edit",
+                "documentation",
+                "project_audit",
+                "test_run",
+            ],
+            priority=80,
+        ),
+        "claude_code": AgentSpec(
+            agent_id="claude_code",
+            roles=["reviewer"],
+            capabilities=["code_review", "risk_check", "source_scan"],
+            priority=70,
+        ),
+        "hermes": AgentSpec(
+            agent_id="hermes",
+            roles=["orchestrator", "acceptance"],
+            capabilities=["acceptance", "orchestration", "verification"],
+            priority=60,
+        ),
     }
 
 
@@ -95,6 +121,9 @@ def load_specs(path: str | os.PathLike[str] | None = None) -> dict[str, AgentSpe
             mode=raw.get("mode", "mock"),
             command=raw.get("command"),
             timeout=int(raw.get("timeout", 1800)),
+            roles=string_list(raw.get("roles")),
+            capabilities=string_list(raw.get("capabilities")),
+            priority=int(raw.get("priority", 0)),
         )
     return specs or default_specs()
 

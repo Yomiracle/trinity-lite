@@ -5,9 +5,9 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/Yomiracle/trinity-lite)](https://github.com/Yomiracle/trinity-lite/releases)
 
-**Local-first multi-agent workflow infrastructure for AI coding agents.**
+**Local-first multi-agent workflow infrastructure for CLI-based AI agents.**
 
-Trinity Lite gives Codex, Claude Code, Hermes, and any CLI-based agent a shared task bus: route work, persist state in SQLite, run workers, capture results, and inspect the whole workflow from the command line.
+Trinity Lite gives Codex, Claude Code, Hermes, Qwen, Gemini, Aider, and any CLI-based agent a shared task bus: route work, persist state in SQLite, run workers, capture results, and inspect the whole workflow from the command line.
 
 [中文 README](README_zh.md)
 
@@ -74,7 +74,7 @@ user task ------> | router         |
                   status / result / inbox
 ```
 
-Default roles are configurable:
+Codex, Claude Code, and Hermes are default presets, not requirements. Roles are configurable:
 
 | Agent | Default Role |
 |-------|--------------|
@@ -84,10 +84,10 @@ Default roles are configurable:
 
 ## Core Capabilities
 
-- **Routing**: resolve task types to the right agent, including opposite-agent review.
+- **Routing**: resolve task types to explicit agents or agents selected by declared capabilities.
 - **Durable bus**: store tasks, status, results, errors, and messages in SQLite.
 - **Worker model**: pull queued tasks and execute mock agents or real local CLIs.
-- **Command adapters**: connect Codex, Claude Code, Hermes, or any CLI through JSON-array commands.
+- **Command adapters**: connect Codex, Claude Code, Hermes, Qwen, Gemini, Aider, or any CLI through JSON-array commands.
 - **Local health checks**: verify Python, SQLite, route config, agent config, publish readiness, and optional runtime hygiene.
 - **Safety boundaries**: block self-delegation, cap delegation depth, enforce allowed working directories, and scan public trees.
 
@@ -97,6 +97,7 @@ Default roles are configurable:
 - **SQLite-first state**: local, inspectable, transactional task storage.
 - **Shell-safe command execution**: command adapters use JSON arrays and `shell=False`.
 - **Mock-to-real upgrade path**: run the full demo before installing real agent CLIs.
+- **Capability routing**: agents can declare roles, capabilities, and priority for name-agnostic routing.
 - **CI-backed public release**: tests, compile checks, and doctor checks run in GitHub Actions.
 - **Designed for extension**: MCP server and orchestrator are planned as optional layers, not required for the core bus.
 
@@ -150,6 +151,14 @@ Agent commands are configured as JSON arrays and run with `shell=False`.
 
 See [docs/REAL_AGENTS.md](docs/REAL_AGENTS.md) for Codex, Claude Code, and generic CLI examples.
 
+For name-agnostic routing, copy the generic capability examples:
+
+```bash
+cp examples/agents.generic.example.json agents.local.json
+cp examples/routes.capabilities.example.json routes.local.json
+trinity-lite dispatch-auto "fix the parser bug" --agents agents.local.json --routes routes.local.json
+```
+
 ## Roadmap
 
 - **v0.1.x**: harden the public local bus, docs, examples, and tests.
@@ -188,6 +197,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 - [Trinity Lite tutorial](docs/TRINITY_LITE.md)
 - [Real agent command setup](docs/REAL_AGENTS.md)
+- [Agent capabilities](docs/CAPABILITIES.md)
 - [Product positioning](docs/PRODUCT.md)
 - [Operations guide](docs/OPERATIONS.md)
 - [Security notes](docs/SECURITY.md)

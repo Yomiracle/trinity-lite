@@ -1,0 +1,44 @@
+{
+  "routes": {
+    "implementation": {
+      "requires": ["code_edit"],
+      "prefer": ["primary_engineer"],
+      "review_required": true
+    },
+    "testing": {
+      "requires": ["test_run"],
+      "prefer": ["primary_engineer"],
+      "review_required": true
+    },
+    "project_audit": {
+      "requires": ["code_review"],
+      "prefer": ["reviewer", "long_context"],
+      "review_required": false
+    },
+    "architecture_design": {
+      "requires": ["long_context"],
+      "prefer": ["primary_engineer", "researcher"],
+      "review_required": true
+    },
+    "code_review": {
+      "requires": ["code_review"],
+      "prefer": ["reviewer"],
+      "review_required": false
+    },
+    "orchestration": {
+      "requires": ["orchestration"],
+      "prefer": ["orchestrator"],
+      "review_required": false
+    },
+    "acceptance": {
+      "requires": ["acceptance"],
+      "prefer": ["acceptance"],
+      "review_required": false
+    }
+  },
+  "opposites": {
+    "qwen_cli": "gemini_cli",
+    "aider": "custom_reviewer",
+    "gemini_cli": "qwen_cli"
+  }
+}

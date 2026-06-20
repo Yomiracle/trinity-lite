@@ -7,8 +7,8 @@ Trinity Lite is intentionally small. It is not a model gateway and not a full ag
 | Module | Responsibility |
 |--------|----------------|
 | `trinity_lite.bus` | SQLite task queue and durable messages |
-| `trinity_lite.router` | `task_type` and pattern routing |
-| `trinity_lite.adapters` | mock and command-based agent adapters |
+| `trinity_lite.router` | `task_type`, pattern, explicit-agent, and capability routing |
+| `trinity_lite.adapters` | mock and command-based agent adapters plus agent metadata |
 | `trinity_lite.worker` | pulls queued tasks and executes an adapter |
 | `trinity_lite.cli` | command line interface |
 | `trinity_lite.guard` | path and secret-scan safety helpers |
@@ -38,20 +38,48 @@ SQLite keeps the public MVP easy to run:
 
 ## Adapter Boundary
 
-Real agent tools are not hardcoded. Public users configure command arrays:
+Real agent tools are not hardcoded. Public users configure command arrays and
+optional routing metadata:
 
 ```json
 {
   "agents": {
-    "codex": {
+    "qwen_cli": {
       "mode": "command",
-      "command": ["codex", "exec", "-C", "{cwd}", "{prompt}"]
+      "command": ["qwen", "run", "{prompt}"],
+      "roles": ["primary_engineer"],
+      "capabilities": ["code_edit", "test_run"],
+      "priority": 80
     }
   }
 }
 ```
 
 Commands are executed with `shell=False`. If no `{prompt}` placeholder is present, the prompt is passed on stdin.
+
+## Routing Boundary
+
+Routes can still name an agent explicitly:
+
+```json
+{"implementation": {"agent": "codex", "review_required": true}}
+```
+
+They can also select by capability:
+
+```json
+{
+  "implementation": {
+    "requires": ["code_edit"],
+    "prefer": ["primary_engineer"],
+    "review_required": true
+  }
+}
+```
+
+The router does not inspect model providers, keys, or API endpoints. Those
+details belong to the CLI agent or local wrapper. Trinity Lite only chooses a
+configured worker and records the result.
 
 ## Non-Goals
 
@@ -60,6 +88,7 @@ Commands are executed with `shell=False`. If no `{prompt}` placeholder is presen
 - No remote task execution
 - No automatic internet access
 - No production deployment assumptions
+- No built-in model-provider API abstraction
 
 ## Health Boundaries
 

@@ -43,7 +43,26 @@ trinity-lite worker codex --once --agents agents.local.json
 
 Keep local command config out of git.
 
-## 6. Optional Runtime Hygiene
+## 6. Route by Capabilities
+
+For arbitrary CLI agents, copy the generic capability examples:
+
+```bash
+cp examples/agents.generic.example.json agents.local.json
+cp examples/routes.capabilities.example.json routes.local.json
+```
+
+Then dispatch with both files:
+
+```bash
+trinity-lite dispatch-auto "fix the parser bug" \
+  --agents agents.local.json \
+  --routes routes.local.json
+```
+
+Trinity Lite will select an agent whose declared capabilities satisfy the route.
+
+## 7. Optional Runtime Hygiene
 
 For a long-running local install, keep runtime files outside the repository and
 check them explicitly:

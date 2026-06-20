@@ -1,4 +1,5 @@
 import io
+import json
 import tempfile
 import unittest
 from contextlib import redirect_stdout
@@ -53,6 +54,47 @@ class CliTest(unittest.TestCase):
             self.assertEqual(code, 0)
             self.assertIn('"runtime_metrics"', output.getvalue())
             self.assertIn('"retired_port:70000"', output.getvalue())
+
+    def test_dispatch_auto_uses_capability_routes_and_agents(self):
+        with tempfile.TemporaryDirectory(dir=str(Path.home())) as tmp:
+            root = Path(tmp)
+            agents_path = root / "agents.json"
+            routes_path = root / "routes.json"
+            agents_path.write_text(json.dumps({
+                "agents": {
+                    "qwen_cli": {
+                        "mode": "mock",
+                        "roles": ["primary_engineer"],
+                        "capabilities": ["code_edit"],
+                        "priority": 80,
+                    }
+                }
+            }), encoding="utf-8")
+            routes_path.write_text(json.dumps({
+                "routes": {
+                    "implementation": {
+                        "requires": ["code_edit"],
+                        "prefer": ["primary_engineer"],
+                    }
+                },
+                "opposites": {}
+            }), encoding="utf-8")
+            output = io.StringIO()
+            with redirect_stdout(output):
+                code = main([
+                    "dispatch-auto",
+                    "implement a parser",
+                    "--db",
+                    str(root / "bus.db"),
+                    "--cwd",
+                    str(root),
+                    "--agents",
+                    str(agents_path),
+                    "--routes",
+                    str(routes_path),
+                ])
+            self.assertEqual(code, 0)
+            self.assertIn('"target_agent": "qwen_cli"', output.getvalue())
 
 
 if __name__ == "__main__":

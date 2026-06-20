@@ -98,7 +98,7 @@ def run_command(args: argparse.Namespace) -> int:
     bus = TrinityBus(args.db)
 
     if args.command == "route":
-        print_json(resolve_route(args.task, args.task_type, args.previous_agent, args.routes))
+        print_json(resolve_route(args.task, args.task_type, args.previous_agent, args.routes, args.agents))
         return 0
     if args.command == "dispatch":
         print_json(bus.submit_task(
@@ -110,7 +110,7 @@ def run_command(args: argparse.Namespace) -> int:
         ))
         return 0
     if args.command == "dispatch-auto":
-        route = resolve_route(args.task, args.task_type, args.previous_agent, args.routes)
+        route = resolve_route(args.task, args.task_type, args.previous_agent, args.routes, args.agents)
         task = bus.submit_task(
             source_agent=args.source,
             target_agent=route["agent"],

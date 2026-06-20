@@ -7,6 +7,9 @@ import re
 from pathlib import Path
 from typing import Any
 
+from .adapters import AgentSpec, load_specs
+from .config import string_list
+
 
 DEFAULT_ROUTES: dict[str, dict[str, Any]] = {
     "implementation": {"agent": "codex", "review_required": True},
@@ -60,6 +63,7 @@ def resolve_route(
     task_type: str | None = None,
     previous_agent: str | None = None,
     routes_path: str | None = None,
+    agents_path: str | None = None,
 ) -> dict[str, Any]:
     config = load_routes(routes_path)
     routes: dict[str, dict[str, Any]] = config["routes"]
@@ -75,9 +79,56 @@ def resolve_route(
         agent = opposites.get(previous_agent)
         if agent is None:
             raise RouteError(f"no opposite agent configured for {previous_agent}")
+    source = "explicit_agent" if agent else "capability_match"
+    if agent is None:
+        agent = _select_agent(rule, load_specs(agents_path), previous_agent)
     return {
         "agent": agent,
         "task_type": resolved_type,
         "review_required": bool(rule.get("review_required", False)),
         "source": "explicit" if task_type else "pattern/default",
+        "selection": source,
     }
+
+
+def _select_agent(
+    rule: dict[str, Any],
+    specs: dict[str, AgentSpec],
+    previous_agent: str | None = None,
+) -> str:
+    try:
+        required = set(string_list(rule.get("requires")))
+        preferred = string_list(rule.get("prefer"))
+        avoided = set(string_list(rule.get("avoid")))
+    except ValueError as exc:
+        raise RouteError(str(exc)) from exc
+
+    candidates: list[tuple[int, AgentSpec]] = []
+    for order, spec in enumerate(specs.values()):
+        labels = _agent_labels(spec)
+        if spec.agent_id == previous_agent:
+            continue
+        if not required.issubset(set(spec.capabilities or [])):
+            continue
+        if avoided.intersection(labels):
+            continue
+        candidates.append((order, spec))
+
+    if not candidates:
+        required_text = ", ".join(sorted(required)) if required else "any capability"
+        raise RouteError(f"no agent matches route requirements: {required_text}")
+
+    def score(item: tuple[int, AgentSpec]) -> tuple[int, int, int]:
+        order, spec = item
+        labels = _agent_labels(spec)
+        preference = 0
+        for index, token in enumerate(preferred):
+            if token in labels:
+                preference = max(preference, len(preferred) - index)
+        return (preference, int(spec.priority), -order)
+
+    return max(candidates, key=score)[1].agent_id
+
+
+def _agent_labels(spec: AgentSpec) -> set[str]:
+    return {spec.agent_id, *(spec.roles or []), *(spec.capabilities or [])}

@@ -1,6 +1,6 @@
 # Real Agent Command Setup
 
-Trinity Lite runs mock agents by default. That is intentional: anyone can test the bus without installing Codex, Claude Code, Hermes, or another agent CLI.
+Trinity Lite runs mock agents by default. That is intentional: anyone can test the bus without installing Codex, Claude Code, Hermes, Qwen, Gemini, Aider, or another agent CLI.
 
 When you are ready to run real tools, create a local command config that is not committed to git.
 
@@ -39,6 +39,25 @@ Avoid:
 ```
 
 Use a shell wrapper only when the tool truly requires shell startup behavior, and keep that wrapper local.
+
+Agent metadata can also declare workflow roles, capabilities, and priority:
+
+```json
+{
+  "agents": {
+    "qwen_cli": {
+      "mode": "command",
+      "command": ["qwen", "run", "{prompt}"],
+      "roles": ["primary_engineer"],
+      "capabilities": ["code_edit", "test_run", "long_context"],
+      "priority": 80,
+      "timeout": 1800
+    }
+  }
+}
+```
+
+See [Agent capabilities](CAPABILITIES.md) for capability-based routing.
 
 ## 3. Codex Example
 
@@ -122,7 +141,34 @@ Example using stdin:
 }
 ```
 
-## 6. Placeholders
+## 6. Capability-Based Routing
+
+Copy the generic examples:
+
+```bash
+cp examples/agents.generic.example.json agents.local.json
+cp examples/routes.capabilities.example.json routes.local.json
+```
+
+Route by declared capabilities:
+
+```bash
+trinity-lite dispatch-auto "fix the parser bug" \
+  --agents agents.local.json \
+  --routes routes.local.json
+```
+
+Run the selected worker:
+
+```bash
+trinity-lite worker qwen_cli --once --agents agents.local.json
+```
+
+Codex, Claude Code, and Hermes are presets, not requirements. If your agent uses
+a different API provider or a local model, keep that setup inside the CLI or a
+local wrapper.
+
+## 7. Placeholders
 
 Supported placeholders:
 
@@ -133,7 +179,7 @@ Supported placeholders:
 | `{task_id}` | Trinity Lite task id |
 | `{task_type}` | Resolved task type |
 
-## 7. Safety Notes
+## 8. Safety Notes
 
 - Keep `agents.local.json` out of git.
 - Do not put API keys in command arrays.
@@ -142,7 +188,7 @@ Supported placeholders:
 
 ## 中文说明
 
-默认 mock agent 是为了让任何人都能先跑通流程。接入真实 Codex / Claude Code 时，只需要复制 `examples/agents.command.example.json` 到本地的 `agents.local.json`，然后按自己的机器修改命令。
+默认 mock agent 是为了让任何人都能先跑通流程。接入真实 Codex、Claude Code、Qwen、Gemini、Aider 或自定义 CLI 时，只需要复制示例到本地的 `agents.local.json`，然后按自己的机器修改命令。
 
 关键规则：
 
@@ -150,3 +196,4 @@ Supported placeholders:
 - Trinity Lite 使用 `shell=False` 执行命令。
 - 不要把 API key、OAuth token、本机私有路径提交到仓库。
 - 本地配置文件使用 `agents.local.json`，不要 commit。
+- 如果不同 agent 使用不同 API，把这些差异留在 CLI 或本地 wrapper 内，Trinity Lite 只负责路由和记录。

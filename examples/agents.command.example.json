@@ -3,16 +3,25 @@
     "codex": {
       "mode": "command",
       "command": ["codex", "exec", "-C", "{cwd}", "{prompt}"],
+      "roles": ["primary_engineer"],
+      "capabilities": ["architecture_design", "code_edit", "documentation", "project_audit", "test_run"],
+      "priority": 80,
       "timeout": 1800
     },
     "claude_code": {
       "mode": "command",
       "command": ["claude", "-p", "{prompt}"],
+      "roles": ["reviewer"],
+      "capabilities": ["code_review", "risk_check", "source_scan"],
+      "priority": 70,
       "timeout": 1800
     },
     "hermes": {
       "mode": "command",
       "command": ["hermes", "-z", "{prompt}"],
+      "roles": ["orchestrator", "acceptance"],
+      "capabilities": ["acceptance", "orchestration", "verification"],
+      "priority": 60,
       "timeout": 1800
     }
   }

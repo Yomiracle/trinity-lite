@@ -1,0 +1,44 @@
+{
+  "agents": {
+    "qwen_cli": {
+      "mode": "command",
+      "command": ["qwen", "run", "{prompt}"],
+      "roles": ["primary_engineer"],
+      "capabilities": ["code_edit", "test_run", "long_context"],
+      "priority": 80,
+      "timeout": 1800
+    },
+    "gemini_cli": {
+      "mode": "command",
+      "command": ["gemini", "-p", "{prompt}"],
+      "roles": ["reviewer", "researcher"],
+      "capabilities": ["code_review", "research", "long_context"],
+      "priority": 70,
+      "timeout": 1800
+    },
+    "aider": {
+      "mode": "command",
+      "command": ["aider", "--message", "{prompt}"],
+      "roles": ["primary_engineer"],
+      "capabilities": ["code_edit"],
+      "priority": 60,
+      "timeout": 1800
+    },
+    "custom_reviewer": {
+      "mode": "command",
+      "command": ["my-reviewer-cli"],
+      "roles": ["reviewer"],
+      "capabilities": ["code_review", "risk_check"],
+      "priority": 50,
+      "timeout": 1800
+    },
+    "workflow_cli": {
+      "mode": "command",
+      "command": ["my-workflow-cli", "{prompt}"],
+      "roles": ["orchestrator", "acceptance"],
+      "capabilities": ["orchestration", "acceptance", "verification"],
+      "priority": 40,
+      "timeout": 1800
+    }
+  }
+}

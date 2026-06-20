@@ -5,9 +5,9 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/Yomiracle/trinity-lite)](https://github.com/Yomiracle/trinity-lite/releases)
 
-**面向 AI 编程 Agent 的本地优先多 Agent 工作流基础设施。**
+**面向 CLI 型 AI Agent 的本地优先多 Agent 工作流基础设施。**
 
-Trinity Lite 给 Codex、Claude Code、Hermes 和任意 CLI agent 提供一条共享任务总线：路由任务、用 SQLite 持久化状态、由 worker 执行任务、记录结果，并能在命令行里检查完整流程。
+Trinity Lite 给 Codex、Claude Code、Hermes、Qwen、Gemini、Aider 和任意 CLI agent 提供一条共享任务总线：路由任务、用 SQLite 持久化状态、由 worker 执行任务、记录结果，并能在命令行里检查完整流程。
 
 [English README](README.md)
 
@@ -74,7 +74,7 @@ trinity-lite tasks
                     status / result / inbox
 ```
 
-默认角色：
+Codex、Claude Code、Hermes 是默认 preset，不是使用前提。角色可以配置：
 
 | Agent | 默认职责 |
 |-------|----------|
@@ -84,10 +84,10 @@ trinity-lite tasks
 
 ## 核心能力
 
-- **任务路由**：根据任务类型决定交给哪个 agent，也支持 opposite-agent 二审。
+- **任务路由**：根据任务类型交给显式 agent，或按声明的能力自动选择 agent。
 - **持久化总线**：SQLite 保存任务、状态、结果、错误和消息。
 - **Worker 模型**：worker 拉取 queued task，执行 mock agent 或真实本地 CLI。
-- **命令适配器**：通过 JSON array command 接入 Codex、Claude Code、Hermes 或任意 CLI。
+- **命令适配器**：通过 JSON array command 接入 Codex、Claude Code、Hermes、Qwen、Gemini、Aider 或任意 CLI。
 - **本地健康检查**：检查 Python、SQLite、routes、agents、发布扫描状态和可选运行态卫生。
 - **安全边界**：禁止自派发、限制派发深度、限制 cwd 范围、扫描公开发布目录。
 
@@ -97,6 +97,7 @@ trinity-lite tasks
 - **SQLite-first 状态层**：本地、可检查、事务化的任务存储。
 - **shell-safe 命令执行**：命令使用 JSON array，并通过 `shell=False` 执行。
 - **mock 到真实 agent 的升级路径**：先跑通完整流程，再接真实 CLI agent。
+- **能力路由**：agent 可以声明角色、能力和优先级，路由不再依赖固定 agent 名字。
 - **CI 支撑的公开发布**：GitHub Actions 运行测试、编译检查和 doctor。
 - **为扩展预留边界**：MCP server、orchestrator、tracing、dashboard 都可以作为后续层添加。
 
@@ -161,6 +162,14 @@ trinity-lite worker codex --once --agents agents.local.json
 
 真实 Codex / Claude Code / 通用 CLI 接入方式见：[docs/REAL_AGENTS.md](docs/REAL_AGENTS.md)。
 
+如果要按能力而不是固定 agent 名字路由，可以复制通用示例：
+
+```bash
+cp examples/agents.generic.example.json agents.local.json
+cp examples/routes.capabilities.example.json routes.local.json
+trinity-lite dispatch-auto "fix the parser bug" --agents agents.local.json --routes routes.local.json
+```
+
 ## 路线图
 
 - **v0.1.x**：打磨公开版本地任务总线、文档、示例和测试。
@@ -176,6 +185,7 @@ trinity-lite worker codex --once --agents agents.local.json
 - [安全说明](docs/SECURITY.md)
 - [教程](docs/TRINITY_LITE.md)
 - [真实 Agent 接入](docs/REAL_AGENTS.md)
+- [Agent 能力路由](docs/CAPABILITIES.md)
 - [产品定位](docs/PRODUCT.md)
 - [运维指南](docs/OPERATIONS.md)
 - [路线图](ROADMAP.md)

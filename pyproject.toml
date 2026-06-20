@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "trinity-lite"
 version = "0.1.0"
-description = "A minimal public three-agent task bus with routing, workers, and safety checks."
+description = "A minimal public multi-agent task bus with routing, workers, and safety checks."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { file = "LICENSE" }

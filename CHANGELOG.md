@@ -8,10 +8,16 @@ All notable changes to Trinity Lite are documented here.
 
 - Optional doctor runtime hygiene checks for writable `metrics.jsonl`, retired runtime artifacts, and retired TCP ports.
 - Operations guide covering public source vs local runtime boundaries, review attention semantics, and upgrade hygiene.
+- Agent metadata for roles, capabilities, and priority.
+- Capability-based routing with `requires`, `prefer`, and `avoid` route fields.
+- Route results now include `selection` to distinguish explicit-agent and capability-match routing while preserving the existing `source` field.
+- Generic CLI agent examples for Qwen, Gemini, Aider, and custom reviewers.
+- Agent capabilities documentation and an ADR for capability routing.
 
 ### Hardened
 
 - Public tree scan now blocks retired runtime artifacts such as `codeproxy.pid` and `trinity_learn.db-wal`.
+- Codex, Claude Code, and Hermes are documented as presets rather than requirements.
 
 ## v0.1.0 - 2026-06-19
 
