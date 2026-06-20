@@ -10,7 +10,10 @@ from pathlib import Path
 SECRET_PATTERNS = [
     re.compile(r"sk-[A-Za-z0-9_\-]{20,}"),
     re.compile(r"sk-or-v1-[A-Za-z0-9_\-]{20,}"),
-    re.compile(r"(?i)(api[_-]?key|token|secret|password)\s*[:=]\s*['\"]?[^'\"\s]+"),
+    re.compile(
+        r"(?i)(?<![-A-Za-z0-9_])[A-Za-z_][A-Za-z0-9_]*"
+        r"(?:api_?key|token|secret|password)\s*[:=]\s*['\"]?[^'\"\s]+"
+    ),
 ]
 
 BLOCKED_PUBLIC_NAMES = {

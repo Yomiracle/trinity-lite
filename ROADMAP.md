@@ -9,6 +9,7 @@ Trinity Lite is intentionally small. The public project should stay easy to inst
 - Expand tests around routing, worker failures, and publish safety checks.
 - Keep private Trinity runtime state out of the public repository.
 - Keep capability-based routing simple, explicit, and backward-compatible.
+- Keep PyPI release automation and packaging metadata healthy.
 
 ## v0.2: MCP Server
 
@@ -41,7 +42,7 @@ primary task -> Codex worker -> Claude Code review -> doctor/tests -> accepted o
 
 - Freeze the CLI command shape.
 - Freeze the SQLite schema or add migrations.
-- Add package publishing to PyPI.
+- Keep PyPI packaging and release automation stable.
 - Add stable documentation for real-world Codex, Claude Code, and generic CLI setups.
 
 ## Non-Goals

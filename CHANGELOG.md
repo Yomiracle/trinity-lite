@@ -4,6 +4,12 @@ All notable changes to Trinity Lite are documented here.
 
 ## v0.1.1 - 2026-06-21
 
+### Published
+
+- Published to PyPI as `trinity-lite==0.1.1`.
+- Added GitHub Actions Trusted Publishing workflow for future PyPI releases.
+- Updated package license metadata to SPDX-style `MIT`.
+
 ### Added
 
 - Optional doctor runtime hygiene checks for writable `metrics.jsonl`, retired runtime artifacts, and retired TCP ports.
@@ -24,7 +30,6 @@ All notable changes to Trinity Lite are documented here.
 
 ### Known Limits
 
-- Not published to PyPI yet.
 - The orchestrator is a minimal local review flow; persistent review gates and retries are planned for v0.3.
 
 ## v0.1.0 - 2026-06-19
@@ -54,5 +59,4 @@ Initial public release.
 
 - No MCP server yet.
 - No orchestrator yet.
-- Not published to PyPI yet.
 - Real agent commands require local user configuration.

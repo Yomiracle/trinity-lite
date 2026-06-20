@@ -32,6 +32,32 @@ git status --short
 not belong in a public repository, including `.env`, runtime databases, logs,
 metrics files, likely secrets, symlinks, and retired runtime artifacts.
 
+## PyPI Publishing
+
+Trinity Lite publishes releases to PyPI. Release artifacts should be built from
+the tagged source, checked with `twine check`, and uploaded only after tests pass.
+
+Manual fallback:
+
+```bash
+python3 -m build
+python3 -m twine check dist/*
+python3 -m twine upload dist/*
+```
+
+The repository also includes a Trusted Publishing workflow. To use it, configure
+the existing PyPI project `trinity-lite` with this GitHub publisher:
+
+| Field | Value |
+|-------|-------|
+| Owner | `Yomiracle` |
+| Repository | `trinity-lite` |
+| Workflow | `publish.yml` |
+| Environment | `pypi` |
+
+After that, publishing a GitHub Release will build the distribution and publish
+it to PyPI without a long-lived API token.
+
 ## Runtime Hygiene Profile
 
 For long-running local installations that maintain a metrics log, use the

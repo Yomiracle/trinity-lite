@@ -4,6 +4,7 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](pyproject.toml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/Yomiracle/trinity-lite)](https://github.com/Yomiracle/trinity-lite/releases)
+[![PyPI](https://img.shields.io/pypi/v/trinity-lite.svg)](https://pypi.org/project/trinity-lite/)
 
 **Local-first multi-agent workflow infrastructure for CLI-based AI agents.**
 
@@ -37,10 +38,8 @@ Trinity Lite turns "several AI tools on one machine" into a small, reproducible 
 ## 30-Second Demo
 
 ```bash
-git clone https://github.com/Yomiracle/trinity-lite.git
-cd trinity-lite
-python3 -m pip install -e .
-trinity-lite doctor --scan-root .
+python3 -m pip install trinity-lite
+trinity-lite doctor
 trinity-lite dispatch-auto "implement a hello-world function"
 trinity-lite worker codex --once
 trinity-lite tasks
@@ -98,7 +97,7 @@ Codex, Claude Code, and Hermes are default presets, not requirements. Roles are 
 - **Shell-safe command execution**: command adapters use JSON arrays and `shell=False`.
 - **Mock-to-real upgrade path**: run the full demo before installing real agent CLIs.
 - **Capability routing**: agents can declare roles, capabilities, and priority for name-agnostic routing.
-- **CI-backed public release**: tests, compile checks, and doctor checks run in GitHub Actions.
+- **CI-backed public release**: tests, compile checks, doctor checks, and a PyPI publish workflow run in GitHub Actions.
 - **Designed for extension**: MCP server and orchestrator are planned as optional layers, not required for the core bus.
 
 ## Product Positioning
@@ -120,11 +119,29 @@ It does not try to replace agent frameworks. It provides a lightweight coordinat
 ## Quick Start
 
 ```bash
+python3 -m pip install trinity-lite
+
+# Run a local health check
+trinity-lite doctor
+
+# Dispatch a task using the built-in route resolver
+trinity-lite dispatch-auto "implement a hello-world function"
+
+# Run one mock Codex worker cycle
+trinity-lite worker codex --once
+
+# Check recent tasks
+trinity-lite tasks
+```
+
+For local development from source:
+
+```bash
 git clone https://github.com/Yomiracle/trinity-lite.git
 cd trinity-lite
 python3 -m pip install -e .
 
-# Run a local health check
+# Run a source-tree health check
 trinity-lite doctor --scan-root .
 
 # Dispatch a task using the built-in route resolver

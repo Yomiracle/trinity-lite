@@ -3,8 +3,11 @@
 ## 1. Install
 
 ```bash
-python3 -m pip install -e .
+python3 -m pip install trinity-lite
 ```
+
+For local source development, clone the repository and run
+`python3 -m pip install -e .`.
 
 ## 2. Dispatch a Task
 
