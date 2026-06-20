@@ -104,6 +104,15 @@ The selected worker still runs normally:
 trinity-lite worker qwen_cli --once --agents agents.local.json
 ```
 
+The optional orchestrator uses the same capability routes for primary work and
+review:
+
+```bash
+trinity-lite orchestrate "fix the parser bug" \
+  --agents agents.local.json \
+  --routes routes.local.json
+```
+
 ## API Differences
 
 Different CLI agents may use different APIs, keys, tools, model families, or
@@ -148,3 +157,15 @@ Suggested names:
 
 These are conventions, not a closed enum. Use stable names in your own routes
 and agent configs.
+
+## Validation
+
+Trinity Lite does not enforce a closed capability vocabulary, but `doctor`
+validates config structure and route resolvability:
+
+```bash
+trinity-lite doctor --agents agents.local.json --routes routes.local.json
+```
+
+This catches invalid field types, unknown explicit agents, broken `opposites`
+entries, and capability routes that cannot match any configured agent.

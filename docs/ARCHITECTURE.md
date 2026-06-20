@@ -10,6 +10,7 @@ Trinity Lite is intentionally small. It is not a model gateway and not a full ag
 | `trinity_lite.router` | `task_type`, pattern, explicit-agent, and capability routing |
 | `trinity_lite.adapters` | mock and command-based agent adapters plus agent metadata |
 | `trinity_lite.worker` | pulls queued tasks and executes an adapter |
+| `trinity_lite.orchestrator` | optional primary task plus review flow |
 | `trinity_lite.cli` | command line interface |
 | `trinity_lite.guard` | path and secret-scan safety helpers |
 | `trinity_lite.doctor` | environment, publish-readiness, and optional runtime hygiene checks |
@@ -24,6 +25,14 @@ Trinity Lite is intentionally small. It is not a model gateway and not a full ag
 5. Adapter runs a mock response or configured command
 6. Bus stores completed result or failure error
 7. User reads status/tasks/inbox
+```
+
+The optional `orchestrate` command composes the same pieces:
+
+```text
+route primary -> submit -> run primary worker once
+              -> if review_required, route code_review
+              -> submit -> run reviewer once -> acceptance_status
 ```
 
 ## Why SQLite

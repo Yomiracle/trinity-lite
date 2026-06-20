@@ -1,4 +1,5 @@
 import socket
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -27,6 +28,160 @@ class DoctorTest(unittest.TestCase):
             (repo / ".env").write_text("empty example", encoding="utf-8")
             report = run_doctor(db_path=str(state / "bus.db"), scan_root=str(repo))
             self.assertEqual(report["status"], "unhealthy")
+
+    def test_doctor_validates_capability_config_schema(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            agents_path = root / "agents.json"
+            routes_path = root / "routes.json"
+            agents_path.write_text(json.dumps({
+                "agents": {
+                    "qwen_cli": {
+                        "mode": "mock",
+                        "roles": ["primary_engineer"],
+                        "capabilities": ["code_edit"],
+                        "priority": 80,
+                    }
+                }
+            }), encoding="utf-8")
+            routes_path.write_text(json.dumps({
+                "routes": {
+                    "implementation": {
+                        "requires": ["code_edit"],
+                        "prefer": ["primary_engineer"],
+                    }
+                },
+                "opposites": {}
+            }), encoding="utf-8")
+            report = run_doctor(
+                db_path=str(root / "bus.db"),
+                routes_path=str(routes_path),
+                agents_path=str(agents_path),
+            )
+            self.assertEqual(report["status"], "healthy")
+
+    def test_doctor_rejects_route_to_unknown_agent(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            agents_path = root / "agents.json"
+            routes_path = root / "routes.json"
+            agents_path.write_text(json.dumps({
+                "agents": {
+                    "qwen_cli": {"mode": "mock"}
+                }
+            }), encoding="utf-8")
+            routes_path.write_text(json.dumps({
+                "routes": {
+                    "implementation": {"agent": "codex"}
+                },
+                "opposites": {}
+            }), encoding="utf-8")
+            report = run_doctor(
+                db_path=str(root / "bus.db"),
+                routes_path=str(routes_path),
+                agents_path=str(agents_path),
+            )
+            self.assertEqual(report["status"], "unhealthy")
+            routes = next(check for check in report["checks"] if check["name"] == "routes")
+            self.assertTrue(any("unknown agent" in issue for issue in routes["detail"]))
+
+    def test_doctor_rejects_unresolvable_capability_route(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            agents_path = root / "agents.json"
+            routes_path = root / "routes.json"
+            agents_path.write_text(json.dumps({
+                "agents": {
+                    "writer": {
+                        "mode": "mock",
+                        "capabilities": ["documentation"],
+                    }
+                }
+            }), encoding="utf-8")
+            routes_path.write_text(json.dumps({
+                "routes": {
+                    "implementation": {"requires": ["code_edit"]}
+                },
+                "opposites": {}
+            }), encoding="utf-8")
+            report = run_doctor(
+                db_path=str(root / "bus.db"),
+                routes_path=str(routes_path),
+                agents_path=str(agents_path),
+            )
+            self.assertEqual(report["status"], "unhealthy")
+            routes = next(check for check in report["checks"] if check["name"] == "routes")
+            self.assertTrue(any("cannot resolve" in issue for issue in routes["detail"]))
+
+    def test_doctor_rejects_bad_opposites_target(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            agents_path = root / "agents.json"
+            routes_path = root / "routes.json"
+            agents_path.write_text(json.dumps({
+                "agents": {
+                    "qwen_cli": {"mode": "mock"},
+                    "gemini_cli": {"mode": "mock"},
+                }
+            }), encoding="utf-8")
+            routes_path.write_text(json.dumps({
+                "routes": {
+                    "code_review": {"agent": "opposite"}
+                },
+                "opposites": {
+                    "qwen_cli": "missing_reviewer"
+                }
+            }), encoding="utf-8")
+            report = run_doctor(
+                db_path=str(root / "bus.db"),
+                routes_path=str(routes_path),
+                agents_path=str(agents_path),
+            )
+            self.assertEqual(report["status"], "unhealthy")
+            routes = next(check for check in report["checks"] if check["name"] == "routes")
+            self.assertTrue(any("unknown target agent" in issue for issue in routes["detail"]))
+
+    def test_doctor_rejects_opposite_route_without_opposites(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            agents_path = root / "agents.json"
+            routes_path = root / "routes.json"
+            agents_path.write_text(json.dumps({
+                "agents": {
+                    "qwen_cli": {"mode": "mock"}
+                }
+            }), encoding="utf-8")
+            routes_path.write_text(json.dumps({
+                "routes": {
+                    "code_review": {"agent": "opposite"}
+                },
+                "opposites": {}
+            }), encoding="utf-8")
+            report = run_doctor(
+                db_path=str(root / "bus.db"),
+                routes_path=str(routes_path),
+                agents_path=str(agents_path),
+            )
+            self.assertEqual(report["status"], "unhealthy")
+            routes = next(check for check in report["checks"] if check["name"] == "routes")
+            self.assertTrue(any("no opposites" in issue for issue in routes["detail"]))
+
+    def test_doctor_rejects_bad_agent_field_types(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            agents_path = root / "agents.json"
+            agents_path.write_text(json.dumps({
+                "agents": {
+                    "bad": {
+                        "mode": "mock",
+                        "capabilities": {"code_edit": True},
+                    }
+                }
+            }), encoding="utf-8")
+            report = run_doctor(db_path=str(root / "bus.db"), agents_path=str(agents_path))
+            self.assertEqual(report["status"], "unhealthy")
+            agents = next(check for check in report["checks"] if check["name"] == "agents")
+            self.assertTrue(any("capabilities" in issue for issue in agents["detail"]))
 
     def test_runtime_checks_require_metrics_file(self):
         with tempfile.TemporaryDirectory() as tmp:

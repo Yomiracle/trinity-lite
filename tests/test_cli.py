@@ -96,6 +96,55 @@ class CliTest(unittest.TestCase):
             self.assertEqual(code, 0)
             self.assertIn('"target_agent": "qwen_cli"', output.getvalue())
 
+    def test_orchestrate_uses_capability_routes_and_agents(self):
+        with tempfile.TemporaryDirectory(dir=str(Path.home())) as tmp:
+            root = Path(tmp)
+            agents_path = root / "agents.json"
+            routes_path = root / "routes.json"
+            agents_path.write_text(json.dumps({
+                "agents": {
+                    "qwen_cli": {
+                        "mode": "mock",
+                        "capabilities": ["code_edit"],
+                    },
+                    "gemini_cli": {
+                        "mode": "mock",
+                        "capabilities": ["code_review"],
+                    },
+                }
+            }), encoding="utf-8")
+            routes_path.write_text(json.dumps({
+                "routes": {
+                    "implementation": {
+                        "requires": ["code_edit"],
+                        "review_required": True,
+                    },
+                    "code_review": {
+                        "requires": ["code_review"],
+                    },
+                },
+                "opposites": {}
+            }), encoding="utf-8")
+            output = io.StringIO()
+            with redirect_stdout(output):
+                code = main([
+                    "orchestrate",
+                    "implement parser",
+                    "--db",
+                    str(root / "bus.db"),
+                    "--cwd",
+                    str(root),
+                    "--agents",
+                    str(agents_path),
+                    "--routes",
+                    str(routes_path),
+                ])
+            self.assertEqual(code, 0)
+            text = output.getvalue()
+            self.assertIn('"target_agent": "qwen_cli"', text)
+            self.assertIn('"target_agent": "gemini_cli"', text)
+            self.assertIn('"acceptance_status": "accepted"', text)
+
 
 if __name__ == "__main__":
     unittest.main()

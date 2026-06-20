@@ -9,6 +9,7 @@ from typing import Any
 
 from .bus import TrinityBus
 from .doctor import run_doctor
+from .orchestrator import run_review_flow
 from .router import resolve_route
 from .worker import run_loop, run_once
 
@@ -46,6 +47,14 @@ def build_parser() -> argparse.ArgumentParser:
     auto.add_argument("--type", dest="task_type")
     auto.add_argument("--previous-agent")
     auto.add_argument("--cwd", default=os.getcwd())
+
+    orchestrate = sub.add_parser("orchestrate", parents=[common], help="dispatch and run a primary task with optional review")
+    orchestrate.add_argument("task")
+    orchestrate.add_argument("--source", default="user")
+    orchestrate.add_argument("--type", dest="task_type")
+    orchestrate.add_argument("--previous-agent")
+    orchestrate.add_argument("--cwd", default=os.getcwd())
+    orchestrate.add_argument("--no-run", action="store_true", help="dispatch the primary task without running workers")
 
     status = sub.add_parser("status", parents=[common], help="show task status")
     status.add_argument("task_id")
@@ -120,6 +129,19 @@ def run_command(args: argparse.Namespace) -> int:
         )
         task["route"] = route
         print_json(task)
+        return 0
+    if args.command == "orchestrate":
+        print_json(run_review_flow(
+            args.task,
+            bus,
+            args.routes,
+            args.agents,
+            args.source,
+            args.task_type,
+            args.previous_agent,
+            args.cwd,
+            run_workers=not args.no_run,
+        ))
         return 0
     if args.command == "status":
         print_json(bus.get_task(args.task_id))

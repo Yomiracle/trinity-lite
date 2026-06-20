@@ -12,6 +12,7 @@ from .adapters import load_specs
 from .bus import TrinityBus
 from .guard import scan_public_tree
 from .router import load_routes
+from .validation import validate_agents_config, validate_routes_config
 
 
 RETIRED_RUNTIME_ARTIFACTS = {
@@ -48,23 +49,37 @@ def run_doctor(
 
     try:
         route_count = len(load_routes(routes_path)["routes"])
-        checks.append({"name": "routes", "ok": True, "detail": f"{route_count} routes"})
+        route_issues = validate_routes_config(routes_path, agents_path)
+        checks.append({
+            "name": "routes",
+            "ok": not route_issues,
+            "detail": route_issues if route_issues else f"{route_count} routes",
+        })
     except Exception as exc:
         checks.append({"name": "routes", "ok": False, "detail": str(exc)})
 
     try:
-        specs = load_specs(agents_path)
+        agent_issues = validate_agents_config(agents_path)
+        if agent_issues:
+            checks.append({"name": "agents", "ok": False, "detail": agent_issues})
+            specs = {}
+        else:
+            specs = load_specs(agents_path)
         missing = []
         for spec in specs.values():
             if spec.mode == "command" and spec.command:
                 exe = spec.command[0]
                 if shutil.which(exe) is None and not Path(exe).exists():
                     missing.append(exe)
-        checks.append({
-            "name": "agents",
-            "ok": not missing,
-            "detail": "missing: " + ", ".join(missing) if missing else f"{len(specs)} agents",
-        })
+        details: list[str] = []
+        if missing:
+            details.append("missing: " + ", ".join(missing))
+        if specs:
+            checks.append({
+                "name": "agents",
+                "ok": not details,
+                "detail": details if details else f"{len(specs)} agents",
+            })
     except Exception as exc:
         checks.append({"name": "agents", "ok": False, "detail": str(exc)})
 

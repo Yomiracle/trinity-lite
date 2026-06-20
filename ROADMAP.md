@@ -25,12 +25,13 @@ Trinity Lite is intentionally small. The public project should stay easy to inst
 
 ## v0.3: Orchestrator
 
-- Add an optional local orchestrator for this flow:
+- Harden the optional local orchestrator for this flow:
 
 ```text
 primary task -> Codex worker -> Claude Code review -> doctor/tests -> accepted or failed
 ```
 
+- Keep the current `orchestrate` command as the minimal local review flow.
 - Store review task links in the bus.
 - Add retry and timeout handling for stale running tasks.
 - Use capability labels instead of hardcoded agent names where possible.

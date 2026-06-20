@@ -179,6 +179,7 @@ trinity-lite tasks
 trinity-lite worker codex --once
 trinity-lite send claude_code "please review task abc"
 trinity-lite inbox claude_code
+trinity-lite orchestrate "implement X"
 trinity-lite doctor --scan-root .
 ```
 

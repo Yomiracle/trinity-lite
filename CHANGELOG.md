@@ -2,7 +2,7 @@
 
 All notable changes to Trinity Lite are documented here.
 
-## Unreleased
+## v0.1.1 - 2026-06-21
 
 ### Added
 
@@ -13,11 +13,19 @@ All notable changes to Trinity Lite are documented here.
 - Route results now include `selection` to distinguish explicit-agent and capability-match routing while preserving the existing `source` field.
 - Generic CLI agent examples for Qwen, Gemini, Aider, and custom reviewers.
 - Agent capabilities documentation and an ADR for capability routing.
+- Doctor schema validation for agent and route config files.
+- Optional `orchestrate` command for a local primary-task plus review flow.
 
 ### Hardened
 
 - Public tree scan now blocks retired runtime artifacts such as `codeproxy.pid` and `trinity_learn.db-wal`.
 - Codex, Claude Code, and Hermes are documented as presets rather than requirements.
+- Doctor config validation reports structured issue lists in `detail` when route or agent schema checks fail.
+
+### Known Limits
+
+- Not published to PyPI yet.
+- The orchestrator is a minimal local review flow; persistent review gates and retries are planned for v0.3.
 
 ## v0.1.0 - 2026-06-19
 

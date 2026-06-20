@@ -29,7 +29,18 @@ trinity-lite tasks
 trinity-lite status <task_id>
 ```
 
-## 5. Switch to Real Commands
+## 5. Run a Review Flow
+
+The optional orchestrator dispatches the primary task, runs the selected worker
+once, and runs a required review once:
+
+```bash
+trinity-lite orchestrate "implement a parser"
+```
+
+It uses the same routes and agent configs as `dispatch-auto`.
+
+## 6. Switch to Real Commands
 
 ```bash
 cp examples/agents.command.example.json agents.local.json
@@ -43,7 +54,7 @@ trinity-lite worker codex --once --agents agents.local.json
 
 Keep local command config out of git.
 
-## 6. Route by Capabilities
+## 7. Route by Capabilities
 
 For arbitrary CLI agents, copy the generic capability examples:
 
@@ -60,9 +71,17 @@ trinity-lite dispatch-auto "fix the parser bug" \
   --routes routes.local.json
 ```
 
+Or run a full primary-plus-review flow:
+
+```bash
+trinity-lite orchestrate "fix the parser bug" \
+  --agents agents.local.json \
+  --routes routes.local.json
+```
+
 Trinity Lite will select an agent whose declared capabilities satisfy the route.
 
-## 7. Optional Runtime Hygiene
+## 8. Optional Runtime Hygiene
 
 For a long-running local install, keep runtime files outside the repository and
 check them explicitly:
