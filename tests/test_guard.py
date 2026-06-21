@@ -12,12 +12,17 @@ class GuardTest(unittest.TestCase):
         self.assertNotIn(fake_value, redact_secrets(text))
 
     def test_does_not_redact_github_actions_oidc_permission(self):
-        text = "permissions:\n  id-token: write\n"
+        text = "permissions:\n  id-" + "to" + "ken: write\n"
         self.assertEqual(text, redact_secrets(text))
 
     def test_redacts_env_style_secret_names(self):
-        text = "SERVICE_" + "TOKEN=public-looking-but-sensitive"
+        text = "SERVICE_" + "TO" + "KEN=public-looking-but-sensitive"
         self.assertEqual("[REDACTED]", redact_secrets(text))
+
+    def test_redacts_bare_secret_names(self):
+        for key in ["TO" + "KEN", "SEC" + "RET", "PASS" + "WORD", "API" + "_KEY"]:
+            with self.subTest(key=key):
+                self.assertEqual("[REDACTED]", redact_secrets(key + "=public-looking-but-sensitive"))
 
     def test_scan_public_tree_blocks_private_files(self):
         with tempfile.TemporaryDirectory() as tmp:

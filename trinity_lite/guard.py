@@ -11,9 +11,13 @@ SECRET_PATTERNS = [
     re.compile(r"sk-[A-Za-z0-9_\-]{20,}"),
     re.compile(r"sk-or-v1-[A-Za-z0-9_\-]{20,}"),
     re.compile(
-        r"(?i)(?<![-A-Za-z0-9_])[A-Za-z_][A-Za-z0-9_]*"
+        r"(?i)(?<![-A-Za-z0-9_])(?:[A-Za-z_][A-Za-z0-9_]*[_-])?"
         r"(?:api_?key|token|secret|password)\s*[:=]\s*['\"]?[^'\"\s]+"
     ),
+]
+
+SAFE_PUBLIC_PATTERNS = [
+    re.compile(r"(?i)^\s*id-token\s*:\s*(read|write|none)\s*(?:#.*)?$"),
 ]
 
 BLOCKED_PUBLIC_NAMES = {
@@ -36,10 +40,17 @@ class GuardError(ValueError):
 
 def redact_secrets(text: str) -> str:
     """Replace likely secrets with a placeholder."""
-    redacted = text
-    for pattern in SECRET_PATTERNS:
-        redacted = pattern.sub("[REDACTED]", redacted)
-    return redacted
+    redacted_lines: list[str] = []
+    for line in text.splitlines(keepends=True):
+        line_body = line.rstrip("\r\n")
+        if any(pattern.match(line_body) for pattern in SAFE_PUBLIC_PATTERNS):
+            redacted_lines.append(line)
+            continue
+        redacted = line
+        for pattern in SECRET_PATTERNS:
+            redacted = pattern.sub("[REDACTED]", redacted)
+        redacted_lines.append(redacted)
+    return "".join(redacted_lines)
 
 
 def ensure_inside_roots(path: str | os.PathLike[str], roots: list[Path]) -> Path:
