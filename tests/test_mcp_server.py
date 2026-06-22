@@ -54,7 +54,7 @@ class McpServerTest(unittest.TestCase):
         self.assertIn("resources", resp["result"]["capabilities"])
         self.assertIn("serverInfo", resp["result"])
         self.assertEqual(resp["result"]["serverInfo"]["name"], "trinity-lite-mcp")
-        self.assertEqual(resp["result"]["serverInfo"]["version"], "0.2.0")
+        self.assertEqual(resp["result"]["serverInfo"]["version"], "0.2.1")
 
     def test_initialized_returns_none(self):
         resp = self._call(self._msg("initialized"))
@@ -76,7 +76,7 @@ class McpServerTest(unittest.TestCase):
         resp = self._call(self._msg("tools/list", 1))
         tools = resp["result"]["tools"]
         self.assertIsInstance(tools, list)
-        self.assertEqual(len(tools), 8)
+        self.assertEqual(len(tools), 10)
         names = [t["name"] for t in tools]
         self.assertIn("trinity_dispatch", names)
         self.assertIn("trinity_dispatch_auto", names)
@@ -86,6 +86,8 @@ class McpServerTest(unittest.TestCase):
         self.assertIn("trinity_doctor", names)
         self.assertIn("trinity_inbox", names)
         self.assertIn("trinity_send", names)
+        self.assertIn("trinity_skill_search", names)
+        self.assertIn("trinity_skill_load", names)
         # Check schema structure
         for t in tools:
             self.assertIn("name", t)
@@ -117,7 +119,7 @@ class McpServerTest(unittest.TestCase):
         data = json.loads(contents[0]["text"])
         self.assertEqual(data["status"], "ok")
         self.assertEqual(data["bus"], "connected")
-        self.assertEqual(data["tools"], 8)
+        self.assertEqual(data["tools"], 10)
         self.assertEqual(data["resources"], 3)
 
     def test_resource_health_degraded(self):
@@ -449,6 +451,118 @@ class McpServerTest(unittest.TestCase):
         compact = _compact_task(task)
         self.assertNotIn("extra_field", compact)
         self.assertEqual(compact["id"], "abc123def456")
+
+
+    # ---- Skills: agent-skill-system integration ----
+
+    def test_skill_search_without_agent_skill_system(self):
+        """Graceful error when agent-skill-system not installed."""
+        import trinity_lite.mcp_server as mcp
+        from unittest.mock import patch
+
+        with patch.object(mcp, "_init_skill_engine", return_value=False):
+            params = {
+                "name": "trinity_skill_search",
+                "arguments": {"query": "parse a contract"},
+            }
+            resp = self._call(self._msg("tools/call", 1, params))
+            self.assertIn("result", resp)
+            self.assertIn("error", resp["result"])
+            self.assertEqual(resp["result"]["error"], "agent-skill-system not installed")
+            self.assertIn("hint", resp["result"])
+
+    def test_skill_search_returns_matching_skills(self):
+        """Search returns matching skills when engine is available."""
+        import trinity_lite.mcp_server as mcp
+
+        old_available = mcp._SKILL_ENGINE_AVAILABLE
+        old_bank = mcp._SKILL_BANK
+        old_bank_dir = mcp._SKILL_BANK_DIR
+        try:
+            from engine.bank import SkillBank
+            mcp._SKILL_ENGINE_AVAILABLE = True
+            mcp._SKILL_BANK_DIR = "/Users/lixiuhua/agent-skill-system/skills"
+            mcp._SKILL_BANK = SkillBank(mcp._SKILL_BANK_DIR)
+            mcp._SKILL_BANK.scan_directory()
+
+            params = {
+                "name": "trinity_skill_search",
+                "arguments": {"query": "generate a weekly report", "limit": 3},
+            }
+            resp = self._call(self._msg("tools/call", 1, params))
+            self.assertIn("result", resp)
+            self.assertIn("skills", resp["result"])
+            skills = resp["result"]["skills"]
+            self.assertIsInstance(skills, list)
+            if skills:
+                self.assertIn("name", skills[0])
+                self.assertIn("description", skills[0])
+                self.assertIn("score", skills[0])
+        finally:
+            mcp._SKILL_ENGINE_AVAILABLE = old_available
+            mcp._SKILL_BANK = old_bank
+            mcp._SKILL_BANK_DIR = old_bank_dir
+
+    def test_skill_load_returns_content(self):
+        """Load a skill's full content."""
+        import trinity_lite.mcp_server as mcp
+
+        old_available = mcp._SKILL_ENGINE_AVAILABLE
+        old_bank = mcp._SKILL_BANK
+        old_bank_dir = mcp._SKILL_BANK_DIR
+        try:
+            from engine.bank import SkillBank
+            mcp._SKILL_ENGINE_AVAILABLE = True
+            mcp._SKILL_BANK_DIR = "/Users/lixiuhua/agent-skill-system/skills"
+            mcp._SKILL_BANK = SkillBank(mcp._SKILL_BANK_DIR)
+            mcp._SKILL_BANK.scan_directory()
+
+            # Pick an active skill from the bank
+            active = mcp._SKILL_BANK.list_active()
+            if active:
+                skill_name = active[0].name
+                params = {
+                    "name": "trinity_skill_load",
+                    "arguments": {"skill_name": skill_name},
+                }
+                resp = self._call(self._msg("tools/call", 1, params))
+                self.assertIn("result", resp)
+                result = resp["result"]
+                self.assertIn("name", result)
+                self.assertIn("skill_md", result)
+                self.assertIn("system_prompt", result)
+        finally:
+            mcp._SKILL_ENGINE_AVAILABLE = old_available
+            mcp._SKILL_BANK = old_bank
+            mcp._SKILL_BANK_DIR = old_bank_dir
+
+    def test_skill_load_not_found(self):
+        """Graceful error when skill name is not in the bank."""
+        import trinity_lite.mcp_server as mcp
+
+        old_available = mcp._SKILL_ENGINE_AVAILABLE
+        old_bank = mcp._SKILL_BANK
+        old_bank_dir = mcp._SKILL_BANK_DIR
+        try:
+            from engine.bank import SkillBank
+            mcp._SKILL_ENGINE_AVAILABLE = True
+            mcp._SKILL_BANK_DIR = "/Users/lixiuhua/agent-skill-system/skills"
+            mcp._SKILL_BANK = SkillBank(mcp._SKILL_BANK_DIR)
+            mcp._SKILL_BANK.scan_directory()
+
+            params = {
+                "name": "trinity_skill_load",
+                "arguments": {"skill_name": "nonexistent-skill-xyz"},
+            }
+            resp = self._call(self._msg("tools/call", 1, params))
+            self.assertIn("result", resp)
+            self.assertIn("error", resp["result"])
+            self.assertIn("skill not found", resp["result"]["error"])
+            self.assertIn("available_skills", resp["result"])
+        finally:
+            mcp._SKILL_ENGINE_AVAILABLE = old_available
+            mcp._SKILL_BANK = old_bank
+            mcp._SKILL_BANK_DIR = old_bank_dir
 
 
 if __name__ == "__main__":

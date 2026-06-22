@@ -20,10 +20,54 @@ from .guard import GuardError
 from .router import resolve_route
 from .worker import run_once as worker_run_once
 
+# ---------------------------------------------------------------------------
+# agent-skill-system integration (optional, graceful fallback)
+# ---------------------------------------------------------------------------
+
+_SKILL_ENGINE_AVAILABLE = False
+_SKILL_BANK = None
+_SKILL_BANK_DIR = None
+
+
+def _find_skills_dir() -> str:
+    """Locate the agent-skill-system skills/ bank directory."""
+    # Env override
+    env_dir = os.environ.get("TRINITY_SKILLS_DIR", "")
+    if env_dir and Path(env_dir).is_dir():
+        return env_dir
+    # Check ~/.trinity/skills
+    home_skills = Path.home() / ".trinity" / "skills"
+    if home_skills.is_dir():
+        return str(home_skills)
+    # Check ~/agent-skill-system/skills (git-clone default)
+    dev_skills = Path.home() / "agent-skill-system" / "skills"
+    if dev_skills.is_dir():
+        return str(dev_skills)
+    # Default (will be auto-created by SkillBank)
+    return str(home_skills)
+
+
+def _init_skill_engine() -> bool:
+    """Lazy-init the agent-skill-system engine.  Cached after first call."""
+    global _SKILL_ENGINE_AVAILABLE, _SKILL_BANK, _SKILL_BANK_DIR
+    if _SKILL_ENGINE_AVAILABLE:
+        return True
+    try:
+        from engine.bank import SkillBank      # type: ignore[import-untyped]
+        _SKILL_BANK_DIR = _find_skills_dir()
+        _SKILL_BANK = SkillBank(_SKILL_BANK_DIR)
+        _SKILL_BANK.scan_directory()
+        _SKILL_ENGINE_AVAILABLE = True
+        return True
+    except ImportError:
+        _SKILL_ENGINE_AVAILABLE = False
+        return False
+
+
 JSONRPC_VERSION = "2.0"
 PROTOCOL_VERSION = "2024-11-05"
 SERVER_NAME = "trinity-lite-mcp"
-SERVER_VERSION = "0.2.0"
+SERVER_VERSION = "0.2.1"
 
 # ---------------------------------------------------------------------------
 # Tool definitions (MCP schema)
@@ -132,6 +176,23 @@ TOOL_DEFINITIONS = [
             "task_id": {"type": "string", "description": "Associated task id"},
         },
         ["target_agent", "message"],
+    ),
+    _tool_def(
+        "trinity_skill_search",
+        "Search agent-skill-system for relevant skills matching a task description.",
+        {
+            "query": {"type": "string", "description": "Task description or keyword query"},
+            "limit": {"type": "integer", "description": "Maximum results (default: 5, max: 20)"},
+        },
+        ["query"],
+    ),
+    _tool_def(
+        "trinity_skill_load",
+        "Load the full content (SKILL.md + memory) of a named skill.",
+        {
+            "skill_name": {"type": "string", "description": "Exact name of the skill to load"},
+        },
+        ["skill_name"],
     ),
 ]
 
@@ -470,6 +531,96 @@ def _handle_trinity_send(params, bus, agents_path, routes_path):
     return jsonrpc_response(1, msg)
 
 
+def _handle_trinity_skill_search(params, bus, agents_path, routes_path):
+    query = _validate_text(params.get("query", ""), max_len=1000)
+    if not query.strip():
+        return jsonrpc_error(1, -32602, "query must not be empty")
+    limit = _validate_limit(params.get("limit"), default=5, maximum=20)
+
+    if not _init_skill_engine():
+        return jsonrpc_response(1, {
+            "error": "agent-skill-system not installed",
+            "hint": "pip install agent-skill-system",
+            "skills": [],
+        })
+
+    try:
+        from engine.searcher import SkillSearcher  # type: ignore[import-untyped]
+        searcher = SkillSearcher(_SKILL_BANK_DIR)
+        results = searcher.search(query, _SKILL_BANK.index, top_n=limit)
+    except Exception as exc:
+        return jsonrpc_response(1, {
+            "error": "skill search failed: {}".format(exc),
+            "skills": [],
+        })
+
+    skills = []
+    for entry, cfg, score in results:
+        skills.append({
+            "name": entry.name,
+            "description": cfg.description,
+            "version": entry.version,
+            "success_rate": entry.success_rate,
+            "use_count": entry.use_count,
+            "score": score,
+            "tags": cfg.tags,
+            "trigger_keywords": cfg.trigger_keywords[:8],
+        })
+
+    return jsonrpc_response(1, {"skills": skills})
+
+
+def _handle_trinity_skill_load(params, bus, agents_path, routes_path):
+    skill_name = _validate_text(params.get("skill_name", ""), max_len=128)
+    if not skill_name.strip():
+        return jsonrpc_error(1, -32602, "skill_name must not be empty")
+
+    if not _init_skill_engine():
+        return jsonrpc_response(1, {
+            "error": "agent-skill-system not installed",
+            "hint": "pip install agent-skill-system",
+        })
+
+    try:
+        from engine.loader import SkillLoader  # type: ignore[import-untyped]
+        entry = _SKILL_BANK.get(skill_name)
+        if entry is None:
+            return jsonrpc_response(1, {
+                "error": "skill not found: {}".format(skill_name),
+                "available_skills": [s.name for s in _SKILL_BANK.list_active()],
+            })
+        loader = SkillLoader(_SKILL_BANK_DIR)
+        bundle = loader.load(entry)
+        if bundle is None:
+            return jsonrpc_error(1, -32002, "failed to load skill: {}".format(skill_name))
+
+        memory_entries_serialised = []
+        for mem in bundle.memory_entries:
+            memory_entries_serialised.append({
+                "date": mem.date,
+                "type": mem.type.value,
+                "title": mem.title,
+                "scene": mem.scene,
+                "detail": mem.detail,
+            })
+
+        return jsonrpc_response(1, {
+            "name": bundle.config.name,
+            "version": bundle.config.version,
+            "description": bundle.config.description,
+            "skill_md": bundle.skill_md,
+            "memory_md": bundle.memory_md,
+            "memory_entries": memory_entries_serialised,
+            "input_schema": bundle.config.input_schema,
+            "trigger_keywords": bundle.config.trigger_keywords,
+            "system_prompt": loader.build_system_prompt(bundle),
+        })
+    except Exception as exc:
+        return jsonrpc_response(1, {
+            "error": "skill load failed: {}".format(exc),
+        })
+
+
 TOOL_HANDLERS = {
     "trinity_dispatch": _handle_trinity_dispatch,
     "trinity_dispatch_auto": _handle_trinity_dispatch_auto,
@@ -479,6 +630,8 @@ TOOL_HANDLERS = {
     "trinity_doctor": _handle_trinity_doctor,
     "trinity_inbox": _handle_trinity_inbox,
     "trinity_send": _handle_trinity_send,
+    "trinity_skill_search": _handle_trinity_skill_search,
+    "trinity_skill_load": _handle_trinity_skill_load,
 }
 
 
