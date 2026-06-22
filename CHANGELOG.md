@@ -2,6 +2,30 @@
 
 All notable changes to Trinity Lite are documented here.
 
+## v0.1.2 - 2026-06-22
+
+### P1 (Critical)
+
+- **orchestrator**: fix `run_once` to process the exact submitted task by passing `task_id`, preventing the orchestrator from picking the wrong queued task.
+
+### P2 (High)
+
+- **adapters**: replace sequential `.replace()` calls with regex-based single-pass placeholder substitution to prevent corrupted prompts.
+- **cli**: remove dead `--db`/`--routes`/`--agents` from the main parser (never parsed due to required subparsers).
+- **ci**: add Python 3.13 to the test matrix.
+- **bus**: add `AND status = 'running'` guard to `finish_worker` UPDATE; raise `ValueError` if rowcount is 0.
+- **worker**: import `traceback` and include `traceback.format_exc()` in error strings.
+- **doctor**: fix `_is_writable` to use `os.access()` instead of opening the file.
+
+### P3 (Medium)
+
+- **packaging**: add `trinity_lite/py.typed` marker for PEP 561 compliance.
+- **gitignore**: add `*.db-shm` and `*.db-wal` patterns.
+- **bus**: rename `utc_now()` to `utc_now_iso()` with docstring.
+- **ci**: add `timeout-minutes: 10` to the test job.
+- **cli**: wrap `__main__.py` in `if __name__ == "__main__":` guard.
+- **docs**: update README and ROADMAP to reflect that orchestrator already ships in v0.1.x.
+
 ## v0.1.1 - 2026-06-21
 
 ### Published
