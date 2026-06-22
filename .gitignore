@@ -10,6 +10,8 @@ build/
 # Runtime state
 .trinity-lite/
 *.db
+*.db-shm
+*.db-wal
 *.sqlite
 *.log
 .env
