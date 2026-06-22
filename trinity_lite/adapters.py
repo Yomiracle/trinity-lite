@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 from dataclasses import dataclass
@@ -71,14 +72,17 @@ class CommandAdapter(BaseAdapter):
             raise AdapterError(f"{self.spec.agent_id} failed: {detail}")
         return output or stderr or f"{self.spec.agent_id} completed without output"
 
+    _RE_PLACEHOLDERS = re.compile(r'\{(prompt|cwd|task_id|task_type)\}')
+
     @staticmethod
     def _format_arg(arg: str, task: dict[str, Any]) -> str:
-        return (
-            arg.replace("{prompt}", task["prompt"])
-            .replace("{cwd}", task["cwd"])
-            .replace("{task_id}", task["id"])
-            .replace("{task_type}", task.get("task_type") or "")
-        )
+        replacements = {
+            "prompt": task["prompt"],
+            "cwd": task["cwd"],
+            "task_id": task["id"],
+            "task_type": task.get("task_type") or "",
+        }
+        return CommandAdapter._RE_PLACEHOLDERS.sub(lambda m: replacements.get(m.group(1), m.group(0)), arg)
 
 
 def default_specs() -> dict[str, AgentSpec]:
