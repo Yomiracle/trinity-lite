@@ -20,13 +20,10 @@ def print_json(data: Any) -> None:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="trinity-lite")
-    parser.add_argument("--db", default=None, help="SQLite database path")
-    parser.add_argument("--routes", default=None, help="routes JSON path")
-    parser.add_argument("--agents", default=None, help="agents JSON path")
     common = argparse.ArgumentParser(add_help=False)
-    common.add_argument("--db", default=argparse.SUPPRESS, help="SQLite database path")
-    common.add_argument("--routes", default=argparse.SUPPRESS, help="routes JSON path")
-    common.add_argument("--agents", default=argparse.SUPPRESS, help="agents JSON path")
+    common.add_argument("--db", default=None, help="SQLite database path")
+    common.add_argument("--routes", default=None, help="routes JSON path")
+    common.add_argument("--agents", default=None, help="agents JSON path")
     sub = parser.add_subparsers(dest="command", required=True)
 
     route = sub.add_parser("route", parents=[common], help="resolve a route without dispatching")
