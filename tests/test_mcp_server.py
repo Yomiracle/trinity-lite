@@ -1,5 +1,6 @@
 import io
 import json
+import os
 import sys
 import tempfile
 import unittest
@@ -20,6 +21,19 @@ from trinity_lite.mcp_server import (
     _validate_limit,
     _validate_timeout,
     _get_known_agents,
+)
+
+try:
+    from engine.bank import SkillBank  # noqa: F401
+
+    HAS_AGENT_SKILL = True
+except ImportError:
+    HAS_AGENT_SKILL = False
+
+# Detect agent-skill-system skills directory
+SKILLS_DIR = os.environ.get(
+    "TRINITY_SKILLS_DIR",
+    os.path.expanduser("~/agent-skill-system/skills"),
 )
 
 
@@ -471,6 +485,8 @@ class McpServerTest(unittest.TestCase):
             self.assertEqual(resp["result"]["error"], "agent-skill-system not installed")
             self.assertIn("hint", resp["result"])
 
+    @unittest.skipUnless(HAS_AGENT_SKILL and Path(SKILLS_DIR).exists(),
+                         "agent-skill-system not installed or skills dir not found")
     def test_skill_search_returns_matching_skills(self):
         """Search returns matching skills when engine is available."""
         import trinity_lite.mcp_server as mcp
@@ -481,7 +497,7 @@ class McpServerTest(unittest.TestCase):
         try:
             from engine.bank import SkillBank
             mcp._SKILL_ENGINE_AVAILABLE = True
-            mcp._SKILL_BANK_DIR = "/Users/lixiuhua/agent-skill-system/skills"
+            mcp._SKILL_BANK_DIR = SKILLS_DIR
             mcp._SKILL_BANK = SkillBank(mcp._SKILL_BANK_DIR)
             mcp._SKILL_BANK.scan_directory()
 
@@ -503,6 +519,8 @@ class McpServerTest(unittest.TestCase):
             mcp._SKILL_BANK = old_bank
             mcp._SKILL_BANK_DIR = old_bank_dir
 
+    @unittest.skipUnless(HAS_AGENT_SKILL and Path(SKILLS_DIR).exists(),
+                         "agent-skill-system not installed or skills dir not found")
     def test_skill_load_returns_content(self):
         """Load a skill's full content."""
         import trinity_lite.mcp_server as mcp
@@ -513,7 +531,7 @@ class McpServerTest(unittest.TestCase):
         try:
             from engine.bank import SkillBank
             mcp._SKILL_ENGINE_AVAILABLE = True
-            mcp._SKILL_BANK_DIR = "/Users/lixiuhua/agent-skill-system/skills"
+            mcp._SKILL_BANK_DIR = SKILLS_DIR
             mcp._SKILL_BANK = SkillBank(mcp._SKILL_BANK_DIR)
             mcp._SKILL_BANK.scan_directory()
 
@@ -536,6 +554,8 @@ class McpServerTest(unittest.TestCase):
             mcp._SKILL_BANK = old_bank
             mcp._SKILL_BANK_DIR = old_bank_dir
 
+    @unittest.skipUnless(HAS_AGENT_SKILL and Path(SKILLS_DIR).exists(),
+                         "agent-skill-system not installed or skills dir not found")
     def test_skill_load_not_found(self):
         """Graceful error when skill name is not in the bank."""
         import trinity_lite.mcp_server as mcp
@@ -546,7 +566,7 @@ class McpServerTest(unittest.TestCase):
         try:
             from engine.bank import SkillBank
             mcp._SKILL_ENGINE_AVAILABLE = True
-            mcp._SKILL_BANK_DIR = "/Users/lixiuhua/agent-skill-system/skills"
+            mcp._SKILL_BANK_DIR = SKILLS_DIR
             mcp._SKILL_BANK = SkillBank(mcp._SKILL_BANK_DIR)
             mcp._SKILL_BANK.scan_directory()
 
