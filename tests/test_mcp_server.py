@@ -68,7 +68,7 @@ class McpServerTest(unittest.TestCase):
         self.assertIn("resources", resp["result"]["capabilities"])
         self.assertIn("serverInfo", resp["result"])
         self.assertEqual(resp["result"]["serverInfo"]["name"], "trinity-lite-mcp")
-        self.assertEqual(resp["result"]["serverInfo"]["version"], "0.2.1")
+        self.assertEqual(resp["result"]["serverInfo"]["version"], "0.2.2")
 
     def test_initialized_returns_none(self):
         resp = self._call(self._msg("initialized"))
