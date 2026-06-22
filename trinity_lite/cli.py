@@ -6,6 +6,7 @@ import argparse
 import json
 import os
 import sys
+from pathlib import Path
 from typing import Any
 
 from .bus import TrinityBus
@@ -256,7 +257,7 @@ def _demo(args: argparse.Namespace, bus: TrinityBus) -> int:
         args.routes,
         args.agents,
         source_agent="user",
-        cwd=os.getcwd(),
+        cwd=str(Path.home()),
         run_workers=True,
     )
     primary = flow["primary_task"]
