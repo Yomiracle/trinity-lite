@@ -2,6 +2,13 @@
 
 All notable changes to Trinity Lite are documented here.
 
+## v0.1.4 - 2026-06-22
+
+### Added
+
+- **`--wait` flag**: `dispatch`, `dispatch-auto`, and `orchestrate` now support `--wait` (and `--wait-timeout`) for synchronous execution — blocks until the task completes and returns the final result. No more fire-and-forget guessing.
+- **`await_task` method** on `TrinityBus`: programmatic polling API for task completion.
+
 ## v0.1.3 - 2026-06-22
 
 ### Added
