@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "trinity-lite"
-version = "0.1.4"
+version = "0.2.0"
 description = "A minimal public multi-agent task bus with routing, workers, and safety checks."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -23,6 +23,9 @@ classifiers = [
   "Programming Language :: Python :: 3.12",
 ]
 dependencies = []
+
+[project.optional-dependencies]
+mcp = ["mcp>=1.0"]
 
 [project.scripts]
 trinity-lite = "trinity_lite.cli:main"

@@ -40,7 +40,7 @@ Quick demo:  trinity-lite demo
 Full help:   trinity-lite --help
 
 Commands: demo, dispatch, dispatch-auto, worker, orchestrate,
-          status, tasks, route, doctor, send, inbox"""
+          status, tasks, route, doctor, send, inbox, mcp"""
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -123,6 +123,11 @@ def build_parser() -> argparse.ArgumentParser:
     version_cmd = sub.add_parser("version", parents=[common], help="show version and exit")
 
     demo = sub.add_parser("demo", parents=[common], help="run a guided first-run demo")
+
+    mcp = sub.add_parser("mcp", help="MCP server control")
+    mcp_sub = mcp.add_subparsers(dest="mcp_command")
+    mcp_sub.required = False
+    mcp_serve = mcp_sub.add_parser("serve", parents=[common], help="start MCP server on stdio")
 
     return parser
 
@@ -238,6 +243,8 @@ def run_command(args: argparse.Namespace) -> int:
         return 0
     if args.command == "demo":
         return _demo(args, bus)
+    if args.command == "mcp":
+        return _mcp(args, bus)
 
     raise AssertionError(f"unhandled command: {args.command}")
 
@@ -348,6 +355,23 @@ def _acceptance_status_from_flow(
 ) -> str:
     from .orchestrator import _acceptance_status
     return _acceptance_status(route, primary_task, review_task)
+
+
+def _mcp(args: argparse.Namespace, bus: TrinityBus) -> int:
+    """Handle 'trinity-lite mcp' subcommand."""
+    if args.mcp_command == "serve":
+        from .mcp_server import serve as mcp_serve
+
+        mcp_serve(bus, agents_path=args.agents, routes_path=args.routes)
+        return 0
+    # Show mcp help
+    print("usage: trinity-lite mcp serve [--db PATH] [--routes PATH] [--agents PATH]")
+    print("")
+    print("MCP server control")
+    print("")
+    print("commands:")
+    print("  serve   start MCP server on stdio")
+    return 0
 
 
 def _demo(args: argparse.Namespace, bus: TrinityBus) -> int:
