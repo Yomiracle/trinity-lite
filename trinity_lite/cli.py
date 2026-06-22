@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import sys
 from typing import Any
 
 from .bus import TrinityBus
@@ -18,13 +19,37 @@ def print_json(data: Any) -> None:
     print(json.dumps(data, ensure_ascii=False, indent=2))
 
 
+def _version() -> str:
+    """Return the installed version, favouring importlib.metadata."""
+    try:
+        from importlib.metadata import PackageNotFoundError, version  # Python >= 3.8
+
+        return version("trinity-lite")
+    except (ImportError, PackageNotFoundError):
+        from . import __version__
+
+        return __version__  # pragma: no cover — fallback for development
+
+
+BANNER = """\
+Trinity Lite — multi-agent task bus
+====================================
+
+Quick demo:  trinity-lite demo
+Full help:   trinity-lite --help
+
+Commands: demo, dispatch, dispatch-auto, worker, orchestrate,
+          status, tasks, route, doctor, send, inbox"""
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="trinity-lite")
+    parser.add_argument("--version", action="store_true", help="show version and exit")
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--db", default=None, help="SQLite database path")
     common.add_argument("--routes", default=None, help="routes JSON path")
     common.add_argument("--agents", default=None, help="agents JSON path")
-    sub = parser.add_subparsers(dest="command", required=True)
+    sub = parser.add_subparsers(dest="command")
 
     route = sub.add_parser("route", parents=[common], help="resolve a route without dispatching")
     route.add_argument("task")
@@ -88,11 +113,35 @@ def build_parser() -> argparse.ArgumentParser:
         help="TCP port that should not be listening, repeatable",
     )
 
+    version_cmd = sub.add_parser("version", parents=[common], help="show version and exit")
+
+    demo = sub.add_parser("demo", parents=[common], help="run a guided first-run demo")
+
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
+    parser = build_parser()
+
+    # No-args: show friendly intro
+    if argv is None:
+        argv = sys.argv[1:]
+    if not argv:
+        print(BANNER)
+        return 0
+
+    args = parser.parse_args(argv)
+
+    # --version flag (before subcommand)
+    if args.version:
+        print(f"trinity-lite {_version()}")
+        return 0
+
+    # No subcommand but unknown args → show friendly intro
+    if args.command is None:
+        print(BANNER)
+        return 0
+
     try:
         return run_command(args)
     except (KeyError, OSError, ValueError) as exc:
@@ -102,6 +151,10 @@ def main(argv: list[str] | None = None) -> int:
 
 def run_command(args: argparse.Namespace) -> int:
     bus = TrinityBus(args.db)
+
+    if args.command == "version":
+        print(f"trinity-lite {_version()}")
+        return 0
 
     if args.command == "route":
         print_json(resolve_route(args.task, args.task_type, args.previous_agent, args.routes, args.agents))
@@ -168,7 +221,96 @@ def run_command(args: argparse.Namespace) -> int:
             args.retired_port,
         ))
         return 0
+    if args.command == "demo":
+        return _demo(args, bus)
+
     raise AssertionError(f"unhandled command: {args.command}")
+
+
+def _demo(args: argparse.Namespace, bus: TrinityBus) -> int:
+    """Run a guided demo flow with human-friendly output."""
+
+    print("Trinity Lite Demo")
+    print("=================")
+
+    # ---- 1. Doctor ----
+    print("→ Running environment checks...")
+    try:
+        health = run_doctor(args.db, args.routes, args.agents)
+        status_label = "healthy" if health["status"] == "healthy" else "unhealthy"
+        icon = "✓" if health["status"] == "healthy" else "✗"
+        print(f"  {icon} Doctor: {status_label}")
+        for check in health.get("checks", []):
+            mark = "✓" if check["ok"] else "✗"
+            print(f"    {mark} {check['name']}: {str(check.get('detail', '')).strip()}")
+    except Exception as exc:
+        print(f"  ✗ Doctor: {exc}")
+    print()
+
+    # ---- 2. Dispatch + worker cycle (full orchestrated flow) ----
+    demo_prompt = "write a hello world function in Python"
+    print("→ Dispatching demo task...")
+    flow = run_review_flow(
+        demo_prompt,
+        bus,
+        args.routes,
+        args.agents,
+        source_agent="user",
+        cwd=os.getcwd(),
+        run_workers=True,
+    )
+    primary = flow["primary_task"]
+    route = flow["route"]
+
+    print(f"  Task ID: {primary['id']}")
+    print(f"  Routed to: {route['agent']}")
+    print()
+
+    # ---- 3. Codex worker already ran in run_review_flow ----
+    print(f"→ Running mock worker ({route['agent']})...")
+    icon = "✓" if primary["status"] == "completed" else "✗"
+    print(f"  {icon} Task {primary['id']} {primary['status']}")
+    print()
+
+    # ---- 4. Claude Code review (already ran via run_review_flow) ----
+    print("→ Running mock worker (claude_code)...")
+    review_task = flow.get("review_task")
+    if review_task:
+        icon = "✓" if review_task.get("status") == "completed" else "✗"
+        print(f"  {icon} Review {review_task.get('status')}")
+    else:
+        print("  - No review task required for this demo")
+    print()
+
+    # ---- 5. Results ----
+    print("→ Results:")
+    final = bus.get_task(primary["id"])
+    print(f"  Task: {final['prompt']}")
+    print(f"  Status: {final['status']}")
+    if final.get("result"):
+        result_text = final["result"]
+        if len(result_text) > 200:
+            result_text = result_text[:200] + "..."
+        print(f"  Result: {result_text}")
+    if final.get("error"):
+        print(f"  Error: {final['error']}")
+    if review_task:
+        review_final = bus.get_task(review_task["id"])
+        print(f"  Review: {review_final.get('status')}")
+        if review_final.get("result"):
+            r_text = review_final["result"]
+            if len(r_text) > 200:
+                r_text = r_text[:200] + "..."
+            print(f"  Review result: {r_text}")
+    print()
+
+    # ---- 6. Next steps ----
+    print("Next steps:")
+    print("  • See all tasks: trinity-lite tasks")
+    print("  • Connect real agents: docs/REAL_AGENTS.md")
+    print("  • Full docs: https://github.com/Yomiracle/trinity-lite")
+
+    return 0
 
 
 if __name__ == "__main__":

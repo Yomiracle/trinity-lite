@@ -146,5 +146,59 @@ class CliTest(unittest.TestCase):
             self.assertIn('"acceptance_status": "accepted"', text)
 
 
+    def test_demo_command_produces_friendly_output(self):
+        with tempfile.TemporaryDirectory(dir=str(Path.home())) as tmp:
+            root = Path(tmp)
+            output = io.StringIO()
+            with redirect_stdout(output):
+                code = main([
+                    "demo",
+                    "--db",
+                    str(root / "bus.db"),
+                ])
+            self.assertEqual(code, 0)
+            text = output.getvalue()
+            self.assertIn("Trinity Lite Demo", text)
+            self.assertIn("Next steps:", text)
+            self.assertIn("trinity-lite tasks", text)
+            self.assertIn("docs/REAL_AGENTS.md", text)
+
+    def test_version_command_prints_version(self):
+        output = io.StringIO()
+        with redirect_stdout(output):
+            code = main(["version"])
+        self.assertEqual(code, 0)
+        self.assertIn("trinity-lite", output.getvalue())
+
+    def test_version_flag_prints_version(self):
+        output = io.StringIO()
+        with redirect_stdout(output):
+            code = main(["--version"])
+        self.assertEqual(code, 0)
+        self.assertIn("trinity-lite", output.getvalue())
+
+    def test_no_args_shows_banner(self):
+        output = io.StringIO()
+        with redirect_stdout(output):
+            code = main([])
+        self.assertEqual(code, 0)
+        text = output.getvalue()
+        self.assertIn("Trinity Lite", text)
+        self.assertIn("Quick demo", text)
+        self.assertIn("trinity-lite demo", text)
+
+    def test_help_flag_works(self):
+        import sys
+        output = io.StringIO()
+        with redirect_stdout(output):
+            try:
+                main(["--help"])
+            except SystemExit as e:
+                self.assertEqual(e.code, 0)
+        text = output.getvalue()
+        self.assertIn("demo", text)
+        self.assertIn("version", text)
+
+
 if __name__ == "__main__":
     unittest.main()
