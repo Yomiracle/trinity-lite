@@ -134,7 +134,23 @@ trinity-lite worker codex --once
 trinity-lite tasks
 ```
 
-如果要从源码开发：
+## 升级
+
+```bash
+python3 -m pip install --upgrade trinity-lite
+```
+
+Trinity Lite 遵循[语义化版本](https://semver.org/lang/zh-CN/)。补丁版本（0.1.x）向后兼容，升级后无需迁移数据或修改配置。查看当前版本：
+
+```bash
+trinity-lite doctor
+# 或
+python3 -m pip show trinity-lite | grep Version
+```
+
+版本变更记录见 [CHANGELOG.md](CHANGELOG.md)。
+
+## 从源码开始
 
 ```bash
 git clone https://github.com/Yomiracle/trinity-lite.git

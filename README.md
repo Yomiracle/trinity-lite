@@ -134,7 +134,24 @@ trinity-lite worker codex --once
 trinity-lite tasks
 ```
 
-For local development from source:
+## Upgrading
+
+```bash
+python3 -m pip install --upgrade trinity-lite
+```
+
+Trinity Lite follows [semantic versioning](https://semver.org). Patch releases (0.1.x) are backward-compatible
+and require no configuration or data migration. Check your version:
+
+```bash
+trinity-lite doctor
+# or
+python3 -m pip show trinity-lite | grep Version
+```
+
+See [CHANGELOG.md](CHANGELOG.md) for what changed between versions.
+
+## Quick Start (from source)
 
 ```bash
 git clone https://github.com/Yomiracle/trinity-lite.git

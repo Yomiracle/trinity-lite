@@ -103,13 +103,35 @@ the reviewer's finding until someone fixes or explicitly accepts the risk.
 
 ## Upgrade Rule
 
-Before upgrading a real local runtime:
+To upgrade an existing install:
 
-1. Export or snapshot runtime state outside the public repository.
-2. Run doctor and tests on the source tree.
-3. Upgrade the tool.
-4. Re-run doctor, worker smoke tests, and any gateway or scheduler checks used by
-   that deployment.
-5. Update public docs or tests only with reusable lessons.
+```bash
+python3 -m pip install --upgrade trinity-lite
+trinity-lite doctor
+```
 
-Never commit the snapshot itself.
+Trinity Lite follows semantic versioning. Patch releases (0.1.x) are
+backward-compatible — no configuration or data migration is needed.
+
+For a real local runtime with long-running workers or state, follow these
+additional steps:
+
+1. Stop any running workers or orchestrators.
+2. Snapshot your runtime state outside the public repository:
+   ```bash
+   cp -r ~/.trinity-lite ~/.trinity-lite.bak.$(date +%Y%m%d)
+   ```
+3. Upgrade the tool:
+   ```bash
+   python3 -m pip install --upgrade trinity-lite
+   ```
+4. Verify:
+   ```bash
+   trinity-lite doctor --runtime-root ~/.trinity-lite
+   trinity-lite worker codex --once
+   ```
+5. If all checks pass, restart your workers and orchestrator.
+6. After a few successful runs, remove old backups.
+
+Update public docs or tests only with reusable lessons. Never commit the
+snapshot itself.
