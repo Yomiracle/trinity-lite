@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import shutil
 import socket
 import sys
@@ -152,11 +153,11 @@ def _runtime_checks(runtime_root: str) -> list[dict[str, Any]]:
 
 
 def _is_writable(path: Path) -> bool:
-    try:
-        with path.open("a", encoding="utf-8"):
-            return True
-    except OSError:
-        return False
+    """Check if a path is writable without modifying it."""
+    if path.exists():
+        return os.access(path, os.W_OK)
+    parent = path.parent
+    return parent.exists() and parent.is_dir() and os.access(parent, os.W_OK)
 
 
 def _retired_port_check(port: int) -> dict[str, Any]:
