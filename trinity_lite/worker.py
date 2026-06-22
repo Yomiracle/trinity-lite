@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+import traceback
 from typing import Any
 
 from .adapters import AdapterError, build_adapter, load_specs
@@ -13,8 +14,9 @@ def run_once(
     agent: str,
     bus: TrinityBus,
     agents_path: str | None = None,
+    task_id: str | None = None,
 ) -> dict[str, Any] | None:
-    task = bus.task_for_worker(agent)
+    task = bus.task_for_worker(agent, task_id=task_id)
     if task is None:
         return None
     specs = load_specs(agents_path)
@@ -27,7 +29,8 @@ def run_once(
     except (KeyboardInterrupt, SystemExit, MemoryError):
         raise
     except Exception as exc:
-        return bus.finish_worker(task["id"], error=str(exc))
+        tb = traceback.format_exc()
+        return bus.finish_worker(task["id"], error=f"{exc}\n{tb}")
 
 
 def run_loop(

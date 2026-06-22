@@ -30,7 +30,7 @@ def run_review_flow(
         task_type=route["task_type"],
         cwd=cwd or os.getcwd(),
     )
-    primary_result = run_once(route["agent"], bus, agents_path) if run_workers else primary_task
+    primary_result = run_once(route["agent"], bus, agents_path, task_id=primary_task["id"]) if run_workers else primary_task
     if primary_result is None:
         primary_result = bus.get_task(primary_task["id"])
 
@@ -55,7 +55,7 @@ def run_review_flow(
             cwd=primary_result["cwd"],
             depth=int(primary_result["depth"]) + 1,
         )
-        review_result = run_once(review_route["agent"], bus, agents_path) if run_workers else review_task
+        review_result = run_once(review_route["agent"], bus, agents_path, task_id=review_task["id"]) if run_workers else review_task
         if review_result is None:
             review_result = bus.get_task(review_task["id"])
 

@@ -17,7 +17,8 @@ MAX_DEPTH = 2
 TERMINAL_STATUSES = {"completed", "failed", "cancelled"}
 
 
-def utc_now() -> str:
+def utc_now_iso() -> str:
+    """Return current UTC time as an ISO 8601 string."""
     return datetime.now(timezone.utc).isoformat()
 
 
@@ -92,7 +93,7 @@ class TrinityBus:
             raise GuardError(f"delegation depth exceeds max depth {MAX_DEPTH}")
         workdir = ensure_inside_roots(cwd or os.getcwd(), self.allowed_roots)
         task_id = uuid.uuid4().hex[:12]
-        now = utc_now()
+        now = utc_now_iso()
         with self.connect() as conn:
             conn.execute(
                 """
@@ -135,19 +136,28 @@ class TrinityBus:
             rows = conn.execute(sql, params).fetchall()
         return [dict(r) for r in rows]
 
-    def task_for_worker(self, target_agent: str) -> dict[str, Any] | None:
-        now = utc_now()
+    def task_for_worker(self, target_agent: str, task_id: str | None = None) -> dict[str, Any] | None:
+        now = utc_now_iso()
         with self.connect() as conn:
             conn.execute("BEGIN IMMEDIATE")
-            row = conn.execute(
-                """
-                SELECT * FROM tasks
-                WHERE target_agent = ? AND status = 'queued'
-                ORDER BY created_at ASC
-                LIMIT 1
-                """,
-                (target_agent,),
-            ).fetchone()
+            if task_id is not None:
+                row = conn.execute(
+                    """
+                    SELECT * FROM tasks
+                    WHERE id = ? AND status = 'queued'
+                    """,
+                    (task_id,),
+                ).fetchone()
+            else:
+                row = conn.execute(
+                    """
+                    SELECT * FROM tasks
+                    WHERE target_agent = ? AND status = 'queued'
+                    ORDER BY created_at ASC
+                    LIMIT 1
+                    """,
+                    (target_agent,),
+                ).fetchone()
             if row is None:
                 conn.commit()
                 return None
@@ -169,16 +179,18 @@ class TrinityBus:
         error: str | None = None,
     ) -> dict[str, Any]:
         status = "failed" if error else "completed"
-        now = utc_now()
+        now = utc_now_iso()
         with self.connect() as conn:
-            conn.execute(
+            cur = conn.execute(
                 """
                 UPDATE tasks
                 SET status = ?, result = ?, error = ?, finished_at = ?, heartbeat_at = ?
-                WHERE id = ?
+                WHERE id = ? AND status = 'running'
                 """,
                 (status, result, error, now, now, task_id),
             )
+            if cur.rowcount == 0:
+                raise ValueError(f"task {task_id} is not in running state")
         return self.get_task(task_id)
 
     def send_message(
@@ -199,7 +211,7 @@ class TrinityBus:
                 )
                 VALUES (?, ?, ?, ?, ?, 0, ?)
                 """,
-                (msg_id, source_agent, target_agent, task_id, message, utc_now()),
+                (msg_id, source_agent, target_agent, task_id, message, utc_now_iso()),
             )
             row = conn.execute("SELECT * FROM messages WHERE id = ?", (msg_id,)).fetchone()
         return dict(row)
