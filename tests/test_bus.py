@@ -61,6 +61,19 @@ class BusTest(unittest.TestCase):
         with self.assertRaises(KeyError):
             self.bus.get_task("rollback-test")
 
+    def test_await_task_returns_on_completion(self):
+        task = self.bus.submit_task("user", "codex", "build it", "implementation", cwd=self.root)
+        self.bus.task_for_worker("codex")
+        self.bus.finish_worker(task["id"], result="ok")
+        result = self.bus.await_task(task["id"], timeout=5)
+        self.assertEqual(result["status"], "completed")
+        self.assertEqual(result["result"], "ok")
+
+    def test_await_task_timeout_raises(self):
+        task = self.bus.submit_task("user", "codex", "slow task", "implementation", cwd=self.root)
+        with self.assertRaises(TimeoutError):
+            self.bus.await_task(task["id"], timeout=0.1)
+
     def test_message_round_trip(self):
         msg = self.bus.send_message("codex", "claude_code", "please review")
         self.assertEqual(msg["read"], 0)

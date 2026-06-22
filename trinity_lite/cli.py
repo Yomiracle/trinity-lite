@@ -63,6 +63,8 @@ def build_parser() -> argparse.ArgumentParser:
     dispatch.add_argument("--source", default="user")
     dispatch.add_argument("--type", dest="task_type")
     dispatch.add_argument("--cwd", default=os.getcwd())
+    dispatch.add_argument("--wait", action="store_true", help="block until task completes and print final result")
+    dispatch.add_argument("--wait-timeout", type=float, default=300, help="timeout in seconds for --wait (default: 300)")
 
     auto = sub.add_parser("dispatch-auto", parents=[common], help="resolve route then dispatch")
     auto.add_argument("task")
@@ -70,6 +72,8 @@ def build_parser() -> argparse.ArgumentParser:
     auto.add_argument("--type", dest="task_type")
     auto.add_argument("--previous-agent")
     auto.add_argument("--cwd", default=os.getcwd())
+    auto.add_argument("--wait", action="store_true", help="block until task completes and print final result")
+    auto.add_argument("--wait-timeout", type=float, default=300, help="timeout in seconds for --wait (default: 300)")
 
     orchestrate = sub.add_parser("orchestrate", parents=[common], help="dispatch and run a primary task with optional review")
     orchestrate.add_argument("task")
@@ -78,6 +82,8 @@ def build_parser() -> argparse.ArgumentParser:
     orchestrate.add_argument("--previous-agent")
     orchestrate.add_argument("--cwd", default=os.getcwd())
     orchestrate.add_argument("--no-run", action="store_true", help="dispatch the primary task without running workers")
+    orchestrate.add_argument("--wait", action="store_true", help="block until orchestrated flow completes")
+    orchestrate.add_argument("--wait-timeout", type=float, default=300, help="timeout in seconds for --wait (default: 300)")
 
     status = sub.add_parser("status", parents=[common], help="show task status")
     status.add_argument("task_id")
@@ -161,13 +167,16 @@ def run_command(args: argparse.Namespace) -> int:
         print_json(resolve_route(args.task, args.task_type, args.previous_agent, args.routes, args.agents))
         return 0
     if args.command == "dispatch":
-        print_json(bus.submit_task(
+        task = bus.submit_task(
             source_agent=args.source,
             target_agent=args.target_agent,
             prompt=args.task,
             task_type=args.task_type,
             cwd=args.cwd,
-        ))
+        )
+        if getattr(args, "wait", False):
+            task = _wait_for_task(bus, task["id"], args.target_agent, args.agents, args.wait_timeout)
+        print_json(task)
         return 0
     if args.command == "dispatch-auto":
         route = resolve_route(args.task, args.task_type, args.previous_agent, args.routes, args.agents)
@@ -179,10 +188,12 @@ def run_command(args: argparse.Namespace) -> int:
             cwd=args.cwd,
         )
         task["route"] = route
+        if getattr(args, "wait", False):
+            task = _wait_for_task(bus, task["id"], route["agent"], args.agents, args.wait_timeout)
         print_json(task)
         return 0
     if args.command == "orchestrate":
-        print_json(run_review_flow(
+        result = run_review_flow(
             args.task,
             bus,
             args.routes,
@@ -191,8 +202,11 @@ def run_command(args: argparse.Namespace) -> int:
             args.task_type,
             args.previous_agent,
             args.cwd,
-            run_workers=not args.no_run,
-        ))
+            run_workers=not args.no_run and not getattr(args, "wait", False),
+        )
+        if getattr(args, "wait", False):
+            result = _wait_for_flow(bus, result, args.agents, args.routes, args.wait_timeout)
+        print_json(result)
         return 0
     if args.command == "status":
         print_json(bus.get_task(args.task_id))
@@ -226,6 +240,114 @@ def run_command(args: argparse.Namespace) -> int:
         return _demo(args, bus)
 
     raise AssertionError(f"unhandled command: {args.command}")
+
+
+def _wait_for_task(
+    bus: TrinityBus,
+    task_id: str,
+    agent: str,
+    agents_path: str | None,
+    timeout: float,
+) -> dict[str, Any]:
+    """Run worker cycles for agent until task completes or timeout."""
+    import time as _time
+    from .bus import TERMINAL_STATUSES
+    deadline = _time.monotonic() + timeout
+    while _time.monotonic() < deadline:
+        task = bus.get_task(task_id)
+        if task["status"] in TERMINAL_STATUSES:
+            return task
+        # Try to process one queued/running task
+        run_once(agent, bus, agents_path, task_id=task_id)
+        _time.sleep(0.1)
+    raise TimeoutError(f"task {task_id} did not finish within {timeout}s")
+
+
+def _wait_for_flow(
+    bus: TrinityBus,
+    flow: dict[str, Any],
+    agents_path: str | None,
+    routes_path: str | None,
+    timeout: float,
+) -> dict[str, Any]:
+    """Run workers to complete a review flow until terminal."""
+    import time as _time
+    from .bus import TERMINAL_STATUSES
+    from .orchestrator import _review_prompt
+
+    primary_id = flow["primary_task"]["id"]
+    primary_agent = flow["route"]["agent"]
+    route = flow["route"]
+
+    # Review may not have been dispatched yet (if run_workers=False was used)
+    review_id = None
+    review_agent = None
+    review = flow.get("review_task")
+    if review:
+        review_id = review["id"]
+        review_agent = flow.get("review_route", {}).get("agent") if flow.get("review_route") else None
+
+    deadline = _time.monotonic() + timeout
+    review_dispatched = review_id is not None
+
+    while _time.monotonic() < deadline:
+        primary = bus.get_task(primary_id)
+
+        # If primary just completed and review is required but not yet dispatched
+        if (primary["status"] == "completed"
+                and route["review_required"]
+                and not review_dispatched):
+            review_prompt_text = _review_prompt(primary)
+            review_route = resolve_route(
+                review_prompt_text,
+                "code_review",
+                route["agent"],
+                routes_path,
+                agents_path,
+            )
+            review_task = bus.submit_task(
+                source_agent=route["agent"],
+                target_agent=review_route["agent"],
+                prompt=review_prompt_text,
+                task_type=review_route["task_type"],
+                cwd=primary["cwd"],
+                depth=int(primary["depth"]) + 1,
+            )
+            review_id = review_task["id"]
+            review_agent = review_route["agent"]
+            review_dispatched = True
+            flow["review_route"] = review_route
+            flow["review_task"] = review_task
+
+        review_done = True
+        if review_id is not None:
+            review_task = bus.get_task(review_id)
+            review_done = review_task["status"] in TERMINAL_STATUSES
+
+        if primary["status"] in TERMINAL_STATUSES and review_done:
+            flow["primary_task"] = primary
+            if review_id is not None:
+                flow["review_task"] = bus.get_task(review_id)
+            flow["acceptance_status"] = _acceptance_status_from_flow(
+                flow["route"], primary, flow.get("review_task")
+            )
+            return flow
+
+        if primary["status"] not in TERMINAL_STATUSES:
+            run_once(primary_agent, bus, agents_path, task_id=primary_id)
+        elif review_id is not None and review_agent:
+            run_once(review_agent, bus, agents_path, task_id=review_id)
+        _time.sleep(0.1)
+    raise TimeoutError(f"flow for {primary_id} did not finish within {timeout}s")
+
+
+def _acceptance_status_from_flow(
+    route: dict[str, Any],
+    primary_task: dict[str, Any],
+    review_task: dict[str, Any] | None,
+) -> str:
+    from .orchestrator import _acceptance_status
+    return _acceptance_status(route, primary_task, review_task)
 
 
 def _demo(args: argparse.Namespace, bus: TrinityBus) -> int:

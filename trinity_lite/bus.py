@@ -216,6 +216,17 @@ class TrinityBus:
             row = conn.execute("SELECT * FROM messages WHERE id = ?", (msg_id,)).fetchone()
         return dict(row)
 
+    def await_task(self, task_id: str, timeout: float = 300) -> dict[str, Any]:
+        """Block until task reaches terminal status or timeout."""
+        import time
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            task = self.get_task(task_id)
+            if task["status"] in TERMINAL_STATUSES:
+                return task
+            time.sleep(0.2)
+        raise TimeoutError(f"task {task_id} did not finish within {timeout}s")
+
     def inbox(
         self,
         agent: str,
