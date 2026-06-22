@@ -10,6 +10,7 @@ Trinity Lite is intentionally small. The public project should stay easy to inst
 - Keep private Trinity runtime state out of the public repository.
 - Keep capability-based routing simple, explicit, and backward-compatible.
 - Keep PyPI release automation and packaging metadata healthy.
+- Ship the optional local orchestrator for primary-work-plus-review flows.
 
 ## v0.2: MCP Server
 
@@ -23,20 +24,6 @@ Trinity Lite is intentionally small. The public project should stay easy to inst
 - Keep the CLI as the fallback path.
 - Document Codex and Claude Code client setup.
 - Document generic CLI agent setup as the default mental model.
-
-## v0.3: Orchestrator
-
-- Harden the optional local orchestrator for this flow:
-
-```text
-primary task -> Codex worker -> Claude Code review -> doctor/tests -> accepted or failed
-```
-
-- Keep the current `orchestrate` command as the minimal local review flow.
-- Store review task links in the bus.
-- Add retry and timeout handling for stale running tasks.
-- Use capability labels instead of hardcoded agent names where possible.
-- Keep the orchestrator optional so simple users can still run only the bus and workers.
 
 ## v1.0: Stable Local Agent Bus
 

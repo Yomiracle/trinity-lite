@@ -98,7 +98,7 @@ Codex, Claude Code, and Hermes are default presets, not requirements. Roles are 
 - **Mock-to-real upgrade path**: run the full demo before installing real agent CLIs.
 - **Capability routing**: agents can declare roles, capabilities, and priority for name-agnostic routing.
 - **CI-backed public release**: tests, compile checks, doctor checks, and a PyPI publish workflow run in GitHub Actions.
-- **Designed for extension**: MCP server and orchestrator are planned as optional layers, not required for the core bus.
+- **Designed for extension**: orchestrator ships in v0.1.x for primary task plus review flows; MCP server is planned as an optional layer.
 
 ## Product Positioning
 
@@ -178,9 +178,8 @@ trinity-lite dispatch-auto "fix the parser bug" --agents agents.local.json --rou
 
 ## Roadmap
 
-- **v0.1.x**: harden the public local bus, docs, examples, and tests.
+- **v0.1.x**: harden the public local bus, docs, examples, tests, and orchestrator.
 - **v0.2**: add a minimal MCP server so AI clients can call Trinity Lite directly.
-- **v0.3**: add an optional orchestrator for primary work -> review -> doctor/tests -> acceptance.
 - **v1.0**: stabilize CLI, schema, and packaging.
 
 See [ROADMAP.md](ROADMAP.md).
