@@ -67,7 +67,7 @@ def _init_skill_engine() -> bool:
 JSONRPC_VERSION = "2.0"
 PROTOCOL_VERSION = "2024-11-05"
 SERVER_NAME = "trinity-lite-mcp"
-SERVER_VERSION = "0.2.1"
+SERVER_VERSION = "0.2.2"
 
 # ---------------------------------------------------------------------------
 # Tool definitions (MCP schema)
