@@ -2,6 +2,18 @@
 
 All notable changes to Trinity Lite are documented here.
 
+## v0.1.3 - 2026-06-22
+
+### Added
+
+- **`trinity-lite demo`**: single-command guided demo — runs doctor, dispatches a task, executes mock workers, and displays results with human-friendly output.
+- **`trinity-lite --version`** and **`trinity-lite version`**: print the installed version.
+- **Friendly no-args output**: running `trinity-lite` without arguments now shows a welcome banner with quick-start hints instead of an argparse error.
+
+### Fixed
+
+- **demo**: use `Path.home()` as cwd to avoid guard rejection when running from outside allowed roots.
+
 ## v0.1.2 - 2026-06-22
 
 ### P1 (Critical)
