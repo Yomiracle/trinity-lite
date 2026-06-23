@@ -68,7 +68,7 @@ class McpServerTest(unittest.TestCase):
         self.assertIn("resources", resp["result"]["capabilities"])
         self.assertIn("serverInfo", resp["result"])
         self.assertEqual(resp["result"]["serverInfo"]["name"], "trinity-lite-mcp")
-        self.assertEqual(resp["result"]["serverInfo"]["version"], "0.2.2")
+        self.assertEqual(resp["result"]["serverInfo"]["version"], "0.3.1")
 
     def test_initialized_returns_none(self):
         resp = self._call(self._msg("initialized"))
@@ -90,7 +90,7 @@ class McpServerTest(unittest.TestCase):
         resp = self._call(self._msg("tools/list", 1))
         tools = resp["result"]["tools"]
         self.assertIsInstance(tools, list)
-        self.assertEqual(len(tools), 10)
+        self.assertEqual(len(tools), 12)
         names = [t["name"] for t in tools]
         self.assertIn("trinity_dispatch", names)
         self.assertIn("trinity_dispatch_auto", names)
@@ -133,7 +133,7 @@ class McpServerTest(unittest.TestCase):
         data = json.loads(contents[0]["text"])
         self.assertEqual(data["status"], "ok")
         self.assertEqual(data["bus"], "connected")
-        self.assertEqual(data["tools"], 10)
+        self.assertEqual(data["tools"], 12)
         self.assertEqual(data["resources"], 3)
 
     def test_resource_health_degraded(self):

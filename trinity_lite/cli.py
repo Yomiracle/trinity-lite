@@ -12,8 +12,9 @@ from typing import Any
 from .bus import TrinityBus
 from .doctor import run_doctor
 from .orchestrator import run_review_flow
+from .pipeline import load_pipeline, run_pipeline
 from .router import resolve_route
-from .worker import run_loop, run_once
+from .worker import _default_pid_path, run_loop, run_once
 
 
 def print_json(data: Any) -> None:
@@ -77,6 +78,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     orchestrate = sub.add_parser("orchestrate", parents=[common], help="dispatch and run a primary task with optional review")
     orchestrate.add_argument("task")
+    orchestrate.add_argument("--pipeline", default=None, help="path to pipeline YAML (uses pipeline orchestration instead of review flow)")
     orchestrate.add_argument("--source", default="user")
     orchestrate.add_argument("--type", dest="task_type")
     orchestrate.add_argument("--previous-agent")
@@ -94,8 +96,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     worker = sub.add_parser("worker", parents=[common], help="run a worker for one agent")
     worker.add_argument("agent")
-    worker.add_argument("--once", action="store_true")
-    worker.add_argument("--poll", type=float, default=2.0)
+    worker.add_argument("--once", action="store_true", help="run a single worker cycle and exit")
+    worker.add_argument("--poll", type=float, default=2.0, help="poll interval in seconds (default: 2.0)")
+    worker.add_argument("--daemon", action="store_true", help="run in continuous daemon mode with signal handling and PID locking")
+    worker.add_argument("--pid-file", default=None, help="custom PID file path (default: ~/.trinity/workers/<agent>.pid)")
 
     send = sub.add_parser("send", parents=[common], help="send a durable message")
     send.add_argument("target_agent")
@@ -198,17 +202,30 @@ def run_command(args: argparse.Namespace) -> int:
         print_json(task)
         return 0
     if args.command == "orchestrate":
-        result = run_review_flow(
-            args.task,
-            bus,
-            args.routes,
-            args.agents,
-            args.source,
-            args.task_type,
-            args.previous_agent,
-            args.cwd,
-            run_workers=not args.no_run and not getattr(args, "wait", False),
-        )
+        if args.pipeline:
+            pipeline = load_pipeline(args.pipeline)
+            result = run_pipeline(
+                pipeline,
+                args.task,
+                bus,
+                args.routes,
+                args.agents,
+                args.source,
+                cwd=args.cwd,
+                run_workers=not args.no_run and not getattr(args, "wait", False),
+            )
+        else:
+            result = run_review_flow(
+                args.task,
+                bus,
+                args.routes,
+                args.agents,
+                args.source,
+                args.task_type,
+                args.previous_agent,
+                args.cwd,
+                run_workers=not args.no_run and not getattr(args, "wait", False),
+            )
         if getattr(args, "wait", False):
             result = _wait_for_flow(bus, result, args.agents, args.routes, args.wait_timeout)
         print_json(result)
@@ -223,6 +240,10 @@ def run_command(args: argparse.Namespace) -> int:
         if args.once:
             print_json(run_once(args.agent, bus, args.agents))
             return 0
+        if args.daemon:
+            pid_file = args.pid_file or str(_default_pid_path(args.agent))
+            return run_loop(args.agent, bus, args.agents, args.poll, pid_file=pid_file)
+        # Default: loop without daemon features (backwards compatible)
         run_loop(args.agent, bus, args.agents, args.poll)
         return 0
     if args.command == "send":

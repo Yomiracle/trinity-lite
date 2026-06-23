@@ -10,6 +10,17 @@ from .router import resolve_route
 from .worker import run_once
 
 
+BUILTIN_REVIEW_PIPELINE = {
+    "name": "review",
+    "description": "Built-in implement-then-review pipeline",
+    "steps": [
+        {"id": "implement", "agent": "", "task_type": "", "prompt_template": "{task}"},
+        {"id": "review_step", "agent": "", "task_type": "code_review",
+         "prompt_template": "Review: {task}\n\nResult:\n{steps.implement.result}"},
+    ],
+}
+
+
 def run_review_flow(
     task: str,
     bus: TrinityBus,

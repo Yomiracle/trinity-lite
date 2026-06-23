@@ -1,0 +1,8 @@
+# pipelines/implement-only.yaml
+name: implement-only
+description: "Implement without review"
+steps:
+  - id: implement
+    agent: codex
+    task_type: implementation
+    prompt_template: "Implement: {task}"

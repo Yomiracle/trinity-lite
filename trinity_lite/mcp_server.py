@@ -17,8 +17,9 @@ from typing import Any
 from .bus import TERMINAL_STATUSES, TrinityBus
 from .doctor import run_doctor
 from .guard import GuardError
+from .pipeline import load_pipeline, run_pipeline
 from .router import resolve_route
-from .worker import run_once as worker_run_once
+from .worker import _default_pid_path, _read_pid_file, run_once as worker_run_once
 
 # ---------------------------------------------------------------------------
 # agent-skill-system integration (optional, graceful fallback)
@@ -67,7 +68,7 @@ def _init_skill_engine() -> bool:
 JSONRPC_VERSION = "2.0"
 PROTOCOL_VERSION = "2024-11-05"
 SERVER_NAME = "trinity-lite-mcp"
-SERVER_VERSION = "0.2.2"
+SERVER_VERSION = "0.3.1"
 
 # ---------------------------------------------------------------------------
 # Tool definitions (MCP schema)
@@ -116,6 +117,21 @@ TOOL_DEFINITIONS = [
         ["task"],
     ),
     _tool_def(
+        "trinity_orchestrate",
+        "Orchestrate a multi-step pipeline from a YAML file or run the default review flow.",
+        {
+            "task": {"type": "string", "description": "Task prompt"},
+            "source_agent": {"type": "string", "description": "Originating agent id (default: mcp)"},
+            "cwd": {"type": "string", "description": "Working directory (default: $HOME)"},
+            "task_type": {"type": "string", "description": "Task type hint"},
+            "previous_agent": {"type": "string", "description": "Previous agent for avoidance"},
+            "pipeline": {"type": "string", "description": "Path to pipeline YAML file"},
+            "wait": {"type": "boolean", "description": "Block until task completes"},
+            "wait_timeout": {"type": "number", "description": "Timeout in seconds for wait"},
+        },
+        ["task"],
+    ),
+    _tool_def(
         "trinity_status",
         "Get the current state and result of a task.",
         {
@@ -140,6 +156,15 @@ TOOL_DEFINITIONS = [
             "task_id": {"type": "string", "description": "Process a specific queued task"},
         },
         ["agent"],
+    ),
+    _tool_def(
+        "trinity_worker_daemon",
+        "Start, stop, or check status of a daemon worker.",
+        {
+            "agent": {"type": "string", "description": "Agent name"},
+            "action": {"type": "string", "enum": ["start", "stop", "status"], "description": "Action to perform"},
+        },
+        ["agent", "action"],
     ),
     _tool_def(
         "trinity_doctor",
@@ -621,17 +646,150 @@ def _handle_trinity_skill_load(params, bus, agents_path, routes_path):
         })
 
 
+
+def _handle_trinity_orchestrate(params, bus, agents_path, routes_path):
+    """Handle trinity_orchestrate: orchestrate pipeline or review flow."""
+    prompt = _validate_text(params["task"])
+    source = params.get("source_agent", "mcp")
+    source = _validate_text(source, 128)
+    cwd = params.get("cwd", os.environ.get("HOME", str(Path.home())))
+    task_type = params.get("task_type") or None
+    previous_agent = params.get("previous_agent") or None
+    pipeline_path = params.get("pipeline") or None
+    wait = params.get("wait", False)
+    wait_timeout = _validate_timeout(params.get("wait_timeout"))
+
+    known = _get_known_agents(bus, agents_path)
+    _validate_agent_id(source, known)
+
+    if pipeline_path:
+        pipeline = load_pipeline(pipeline_path)
+        result = run_pipeline(
+            pipeline,
+            prompt,
+            bus,
+            routes_path=routes_path,
+            agents_path=agents_path,
+            source_agent=source,
+            cwd=cwd,
+            run_workers=True,
+        )
+        return jsonrpc_response(1, result)
+    else:
+        from .orchestrator import run_review_flow
+        result = run_review_flow(
+            prompt,
+            bus,
+            routes_path=routes_path,
+            agents_path=agents_path,
+            source_agent=source,
+            task_type=task_type,
+            previous_agent=previous_agent,
+            cwd=cwd,
+            run_workers=True,
+        )
+        return jsonrpc_response(1, result)
+def _handle_trinity_worker_daemon(params, bus, agents_path, routes_path):
+    """Handle trinity_worker_daemon: start/stop/status a daemon worker."""
+    import subprocess as _sp
+    import time as _time
+
+    agent = _validate_text(params["agent"], 128)
+    action = params.get("action", "status")
+
+    if action not in ("start", "stop", "status"):
+        return jsonrpc_error(1, -32602, "action must be one of: start, stop, status")
+
+    pid_path = _default_pid_path(agent)
+
+    if action == "status":
+        pid = _read_pid_file(pid_path)
+        if pid is not None:
+            try:
+                os.kill(pid, 0)
+                return jsonrpc_response(1, {"running": True, "pid": pid, "pid_file": str(pid_path)})
+            except OSError:
+                pass
+        return jsonrpc_response(1, {"running": False, "pid_file": str(pid_path)})
+
+    if action == "stop":
+        pid = _read_pid_file(pid_path)
+        if pid is None:
+            # Clean up stale pid file if exists
+            try:
+                pid_path.unlink(missing_ok=True)
+            except OSError:
+                pass
+            return jsonrpc_response(1, {"stopped": True, "message": "no running daemon found"})
+        try:
+            os.kill(pid, signal.SIGTERM)
+        except OSError:
+            pid_path.unlink(missing_ok=True)
+            return jsonrpc_response(1, {"stopped": True, "message": "stale PID cleaned up"})
+
+        # Wait up to 5s for graceful shutdown
+        deadline = _time.monotonic() + 5
+        while _time.monotonic() < deadline:
+            try:
+                os.kill(pid, 0)
+            except OSError:
+                break
+            _time.sleep(0.1)
+        else:
+            # Force kill
+            try:
+                os.kill(pid, signal.SIGKILL)
+            except OSError:
+                pass
+
+        # Clean PID file
+        try:
+            pid_path.unlink(missing_ok=True)
+        except OSError:
+            pass
+
+        return jsonrpc_response(1, {"stopped": True, "pid": pid})
+
+    if action == "start":
+        # Check if already running
+        pid = _read_pid_file(pid_path)
+        if pid is not None:
+            try:
+                os.kill(pid, 0)
+                return jsonrpc_error(1, -32000,
+                    "worker daemon for '{}' is already running (PID {})".format(agent, pid))
+            except OSError:
+                pid_path.unlink(missing_ok=True)
+
+        # Spawn daemon via subprocess (non-blocking)
+        try:
+            cmd = [sys.executable, "-m", "trinity_lite", "worker", agent, "--daemon"]
+            proc = _sp.Popen(cmd, stdin=_sp.DEVNULL, stdout=_sp.DEVNULL, stderr=_sp.DEVNULL)
+            # Give it a moment to acquire PID lock
+            _time.sleep(0.3)
+            pid = _read_pid_file(pid_path)
+            return jsonrpc_response(1, {
+                "started": True,
+                "pid": pid or proc.pid,
+                "pid_file": str(pid_path),
+            })
+        except Exception as exc:
+            return jsonrpc_error(1, -32603, "failed to start daemon: {}".format(exc))
+
+
 TOOL_HANDLERS = {
     "trinity_dispatch": _handle_trinity_dispatch,
     "trinity_dispatch_auto": _handle_trinity_dispatch_auto,
     "trinity_status": _handle_trinity_status,
     "trinity_tasks": _handle_trinity_tasks,
     "trinity_worker": _handle_trinity_worker,
+    "trinity_worker_daemon": _handle_trinity_worker_daemon,
     "trinity_doctor": _handle_trinity_doctor,
     "trinity_inbox": _handle_trinity_inbox,
     "trinity_send": _handle_trinity_send,
     "trinity_skill_search": _handle_trinity_skill_search,
     "trinity_skill_load": _handle_trinity_skill_load,
+    "trinity_orchestrate": _handle_trinity_orchestrate,
 }
 
 

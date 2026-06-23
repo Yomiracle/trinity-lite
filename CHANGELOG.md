@@ -1,5 +1,41 @@
 # Changelog
 
+## v0.3.1 - 2026-06-23
+
+### Added
+
+- **YAML Pipeline Orchestration**: N-step sequential pipelines defined in YAML files, enabling multi-agent workflows beyond the built-in review flow.
+  - New `pipelines/` directory with example pipelines (`implement-review.yaml`, `implement-only.yaml`).
+  - `trinity_lite/pipeline.py`: `load_pipeline()`, `resolve_step_prompt()`, `run_pipeline()`.
+  - `--pipeline` flag on `orchestrate` CLI subcommand: `trinity-lite orchestrate "task" --pipeline pipelines/implement-review.yaml`
+  - `trinity_orchestrate` MCP tool: orchestrate pipelines from any MCP client.
+  - Pipeline step prompts support `{task}` and `{steps.X.result}` variable substitution.
+  - 16 new tests covering pipeline loading, validation, rendering, and execution.
+
+### Changed
+
+- `run_review_flow()` gains a `BUILTIN_REVIEW_PIPELINE` constant documenting the review flow structure (backwards compatible).
+- MCP server tool count updated from 11 to 12 (new trinity_orchestrate tool).
+
+## v0.3.0 - 2026-06-23
+
+### Added
+
+- **Worker Daemon mode**: `trinity-lite worker <agent> --daemon` runs a production-grade daemon
+  with POSIX signal handling (SIGTERM/SIGINT), PID file locking, stale PID detection,
+  and graceful shutdown.
+- New CLI flags: `--daemon`, `--pid-file` for worker subcommand.
+- **`trinity_worker_daemon` MCP tool**: start, stop, or check status of daemon workers
+  from any MCP client.
+- 8 new tests for daemon lifecycle: stop flag, PID creation/cleanup, duplicate prevention,
+  stale PID detection, and PID file reading.
+
+### Changed
+
+- `run_loop()` now returns exit code (0 for clean shutdown, 1 for lock failure) instead of None.
+- Worker subcommand `--once` and `--poll` flags now have help text.
+
+
 All notable changes to Trinity Lite are documented here.
 
 ## v0.2.3 - 2026-06-23

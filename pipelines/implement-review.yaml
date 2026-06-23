@@ -1,0 +1,17 @@
+# pipelines/implement-review.yaml
+name: implement-review
+description: "Implement a task, then review the result"
+steps:
+  - id: implement
+    agent: codex
+    task_type: implementation
+    prompt_template: "Implement: {task}"
+    
+  - id: review
+    agent: claude_code
+    task_type: code_review
+    prompt_template: |
+      Review the implementation of: {task}
+
+      Result from implement step:
+      {steps.implement.result}
