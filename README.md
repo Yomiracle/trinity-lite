@@ -3,241 +3,142 @@
 [![Tests](https://github.com/Yomiracle/trinity-lite/actions/workflows/test.yml/badge.svg)](https://github.com/Yomiracle/trinity-lite/actions/workflows/test.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](pyproject.toml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Release](https://img.shields.io/github/v/release/Yomiracle/trinity-lite)](https://github.com/Yomiracle/trinity-lite/releases)
 [![PyPI](https://img.shields.io/pypi/v/trinity-lite.svg)](https://pypi.org/project/trinity-lite/)
 
-**Local-first multi-agent workflow infrastructure for CLI-based AI agents.**
-
-Trinity Lite gives Codex, Claude Code, Hermes, Qwen, Gemini, Aider, and any CLI-based agent a shared task bus: route work, persist state in SQLite, run workers, capture results, and inspect the whole workflow from the command line.
+**The bus that lets your AI agents talk to each other.**
 
 [中文 README](README_zh.md)
 
-## Why Trinity Lite
+## The problem
 
-AI coding agents are powerful on their own, but multi-agent work is often still coordinated by hand:
+You already use Claude Code. Maybe you just installed Codex. You want them to collaborate — but there's no built-in way to route tasks between them, remember who did what, or stop them from stepping on each other. Trinity Lite is the missing layer.
 
-| Manual workflow | Trinity Lite workflow |
-|-----------------|----------------------|
-| Copy results between tools | Dispatch tasks through a shared bus |
-| Remember task state yourself | Store task status and results in SQLite |
-| Decide handoffs manually | Route by task type or explicit agent |
-| Lose failure context | Keep errors, results, and messages queryable |
-| Demo depends on installed real agents | Mock agents run the full workflow locally |
+## What it does
 
-Trinity Lite turns "several AI tools on one machine" into a small, reproducible agent workflow layer.
+- **Route tasks between your agents.** *"Send implementation to Codex, reviews to Claude Code — automatically."*
+- **Remember everything.** Tasks, results, errors, and messages all land in a local SQLite database you can query anytime.
+- **Run workers that pull and execute.** Each agent gets a worker that picks up queued tasks, runs them, and writes results back.
+- **Keep things safe.** Self-delegation is blocked. Delegation depth is capped. Working directories are allowlisted. No surprises.
 
-## Who It Is For
+## Quick start
 
-| User | What Trinity Lite helps with |
-|------|------------------------------|
-| AI developers | Prototype multi-agent coding workflows without building a platform first |
-| Agent workflow builders | Test routing, task persistence, review handoffs, and worker execution |
-| Indie hackers and small teams | Coordinate local CLI agents without server infrastructure |
-| Technical creators and educators | Demonstrate real multi-agent flow with commands people can run |
-
-## 30-Second Demo
+30 seconds, works without any real agents installed:
 
 ```bash
-python3 -m pip install trinity-lite
+pip install trinity-lite
 trinity-lite doctor
 trinity-lite dispatch-auto "implement a hello-world function"
 trinity-lite worker codex --once
 trinity-lite tasks
 ```
 
-The default agents are mock agents, so this demo works even if Codex, Claude Code, or Hermes are not installed.
+Mock agents ship with the package, so the full workflow runs out of the box.
 
-## How It Works
+## Why not another framework
 
-```text
-                  +----------------+
-user task ------> | router         |
-                  +-------+--------+
-                          |
-                          v
-                  +-------+--------+
-                  | SQLite task bus|
-                  +-------+--------+
-                          |
-          +---------------+----------------+
-          v                                v
-   +------+-------+                 +------+-------+
-   | Codex worker |                 | review worker|
-   +------+-------+                 +------+-------+
-          |                                |
-          v                                v
-   agent adapter                    agent adapter
-          |                                |
-          +---------------+----------------+
-                          v
-                  status / result / inbox
-```
+Trinity Lite doesn't build agents. It connects the agents you already have.
 
-Codex, Claude Code, and Hermes are default presets, not requirements. Roles are configurable:
+LangGraph and CrewAI give you primitives to build new agents from scratch. Trinity Lite assumes your agents already exist — Codex in one terminal, Claude Code in another — and gives them a shared task bus, durable state, and safety boundaries. No SDK to learn, no new agent abstraction.
 
-| Agent | Default Role |
-|-------|--------------|
-| `codex` | primary implementation, testing, project audit |
-| `claude_code` | secondary review and cross-check |
-| `hermes` | orchestration and acceptance |
+## Who this is for
 
-## Core Capabilities
+| You are... | Trinity Lite helps you... |
+|------------|---------------------------|
+| Running 2+ CLI agents and tired of copy-pasting between terminals | Dispatch tasks through a shared bus and read results in one place |
+| Prototyping multi-agent workflows before committing to a platform | Test routing, persistence, and review handoffs with mock agents first |
+| Coordinating agents on a single machine without server infrastructure | Keep everything local: SQLite state, stdlib-only runtime, no daemons |
+| Demonstrating multi-agent systems to others | Ship a reproducible workflow that anyone can run with five commands |
 
-- **Routing**: resolve task types to explicit agents or agents selected by declared capabilities.
-- **Durable bus**: store tasks, status, results, errors, and messages in SQLite.
-- **Worker model**: pull queued tasks and execute mock agents or real local CLIs.
-- **Command adapters**: connect Codex, Claude Code, Hermes, Qwen, Gemini, Aider, or any CLI through JSON-array commands.
-- **Local health checks**: verify Python, SQLite, route config, agent config, publish readiness, and optional runtime hygiene.
-- **Safety boundaries**: block self-delegation, cap delegation depth, enforce allowed working directories, and scan public trees.
+## Features
 
-## Technical Highlights
+- **Route by task type or agent capability.** Declare what each agent can do, and the router picks the right one — or dispatch directly to a named agent.
+- **Persist everything in SQLite.** Tasks, statuses, results, errors, and inter-agent messages are all queryable from a single local database.
+- **Run workers that execute real CLIs.** Workers pull tasks from the bus, invoke Codex, Claude Code, Hermes, or any CLI agent, and write results back.
+- **Use name-agnostic capability routing.** Agents declare capabilities like `implement`, `review`, `audit` — the router matches tasks without hardcoding agent names.
+- **Test without real agents.** Mock agents simulate the full dispatch → worker → result cycle, so you can prototype before wiring up live CLIs.
+- **Block dangerous patterns before they happen.** Self-delegation is rejected. Delegation depth is capped. Working directories must be in the allowlist.
+- **Check health with one command.** `trinity-lite doctor` verifies Python, SQLite, route config, agent config, and publish readiness in a single pass.
+- **Execute commands safely.** All agent commands are JSON arrays running with `shell=False` — no shell injection surface.
+- **Extend with zero friction.** Zero runtime dependencies. Standard library only. The MCP server is one optional pip extra away.
 
-- **Zero runtime dependencies**: standard-library Python package.
-- **SQLite-first state**: local, inspectable, transactional task storage.
-- **Shell-safe command execution**: command adapters use JSON arrays and `shell=False`.
-- **Mock-to-real upgrade path**: run the full demo before installing real agent CLIs.
-- **Capability routing**: agents can declare roles, capabilities, and priority for name-agnostic routing.
-- **CI-backed public release**: tests, compile checks, doctor checks, and a PyPI publish workflow run in GitHub Actions.
-- **Designed for extension**: orchestrator ships in v0.1.x for primary task plus review flows; MCP server is planned as an optional layer.
-
-## Product Positioning
-
-Trinity Lite sits between "single-agent CLI tools" and "full agent frameworks":
-
-```text
-Codex / Claude Code / custom CLI
-        |
-        v
-Trinity Lite: route -> bus -> worker -> result
-        |
-        v
-future layers: MCP server, orchestrator, tracing, dashboard
-```
-
-It does not try to replace agent frameworks. It provides a lightweight coordination layer for the AI tools developers already use.
-
-## Quick Start
+## Install
 
 ```bash
-python3 -m pip install trinity-lite
+pip install trinity-lite
+```
 
-# Run a local health check
+Requires Python 3.10+. Zero runtime dependencies — just the standard library.
+
+### Optional extras
+
+```bash
+pip install trinity-lite[mcp]          # MCP server
+pip install trinity-lite[agent-skill]   # agent-skill-system integration
+```
+
+## Example workflow
+
+Here's how three agents collaborate on a single feature:
+
+```bash
+# 1. Run health check to confirm everything is wired up
 trinity-lite doctor
 
-# Dispatch a task using the built-in route resolver
-trinity-lite dispatch-auto "implement a hello-world function"
+# 2. Hermes routes the task — the router picks the right agent automatically
+trinity-lite dispatch-auto "implement a rate limiter for the API" --source-agent hermes
 
-# Run one mock Codex worker cycle
-trinity-lite worker codex --once
+# 3. Codex picks up and implements
+trinity-lite worker codex --once --agents agents.local.json
 
-# Check recent tasks
+# 4. Claude Code reviews the implementation
+trinity-lite send claude_code "please review task <task_id>" --source-agent hermes
+trinity-lite worker claude_code --once --agents agents.local.json
+
+# 5. Inspect the full trail
 trinity-lite tasks
+trinity-lite status <task_id>
 ```
 
-## Upgrading
-
-```bash
-python3 -m pip install --upgrade trinity-lite
-```
-
-Trinity Lite follows [semantic versioning](https://semver.org). Patch releases (0.1.x) are backward-compatible
-and require no configuration or data migration. Check your version:
-
-```bash
-trinity-lite doctor
-# or
-python3 -m pip show trinity-lite | grep Version
-```
-
-See [CHANGELOG.md](CHANGELOG.md) for what changed between versions.
-
-## Quick Start (from source)
-
-```bash
-git clone https://github.com/Yomiracle/trinity-lite.git
-cd trinity-lite
-python3 -m pip install -e .
-
-# Run a source-tree health check
-trinity-lite doctor --scan-root .
-
-# Dispatch a task using the built-in route resolver
-trinity-lite dispatch-auto "implement a hello-world function"
-
-# Run one mock Codex worker cycle
-trinity-lite worker codex --once
-
-# Check recent tasks
-trinity-lite tasks
-```
-
-## Use Real Agent Commands
-
-Copy the command example and edit it for your machine:
+The first two steps work immediately with mock agents. Wire up real CLIs by copying the example config:
 
 ```bash
 cp examples/agents.command.example.json agents.local.json
-trinity-lite dispatch-auto "write a unit test"
-trinity-lite worker codex --once --agents agents.local.json
 ```
 
-Agent commands are configured as JSON arrays and run with `shell=False`.
+## MCP server
 
-See [docs/REAL_AGENTS.md](docs/REAL_AGENTS.md) for Codex, Claude Code, and generic CLI examples.
-
-For name-agnostic routing, copy the generic capability examples:
+Trinity Lite ships as an MCP server — let your AI clients control the task bus directly.
 
 ```bash
-cp examples/agents.generic.example.json agents.local.json
-cp examples/routes.capabilities.example.json routes.local.json
-trinity-lite dispatch-auto "fix the parser bug" --agents agents.local.json --routes routes.local.json
+pip install trinity-lite[mcp]
+trinity-lite mcp serve
 ```
 
-## Roadmap
+**10 tools available:**
 
-- **v0.1.x**: harden the public local bus, docs, examples, tests, and orchestrator.
-- **v0.2**: add a minimal MCP server so AI clients can call Trinity Lite directly.
-- **v1.0**: stabilize CLI, schema, and packaging.
+| Tool | What it does |
+|------|--------------|
+| `trinity_dispatch` | Dispatch a task to a specific agent |
+| `trinity_dispatch_auto` | Let the router pick the right agent |
+| `trinity_status` | Get state and result of any task |
+| `trinity_tasks` | List recent tasks, filterable by agent |
+| `trinity_worker` | Run one worker cycle for an agent |
+| `trinity_doctor` | Run health and diagnostic checks |
+| `trinity_inbox` | Read durable messages for an agent |
+| `trinity_send` | Send a message to another agent |
+| `trinity_skill_search` | Search agent-skill-system for relevant skills |
+| `trinity_skill_load` | Load full content of a named skill |
 
-See [ROADMAP.md](ROADMAP.md).
+**3 resources:** `trinity://health`, `trinity://tasks/recent`, `trinity://tasks/{task_id}`
 
-## Core Commands
+## Links
 
-```bash
-trinity-lite route "review this patch" --previous-agent codex
-trinity-lite dispatch codex "implement X"
-trinity-lite dispatch-auto "audit this project"
-trinity-lite status <task_id>
-trinity-lite tasks
-trinity-lite worker codex --once
-trinity-lite send claude_code "please review task abc"
-trinity-lite inbox claude_code
-trinity-lite orchestrate "implement X"
-trinity-lite doctor --scan-root .
-```
-
-For long-running local installs that maintain a metrics log, add runtime hygiene
-checks:
-
-```bash
-trinity-lite doctor --runtime-root ~/.trinity-lite --retired-port 9797
-```
-
-## Architecture
-
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
-
-## Project Docs
-
-- [Trinity Lite tutorial](docs/TRINITY_LITE.md)
-- [Real agent command setup](docs/REAL_AGENTS.md)
-- [Agent capabilities](docs/CAPABILITIES.md)
-- [Product positioning](docs/PRODUCT.md)
-- [Operations guide](docs/OPERATIONS.md)
-- [Security notes](docs/SECURITY.md)
-- [Roadmap](ROADMAP.md)
+- [PyPI](https://pypi.org/project/trinity-lite/)
+- [Documentation](docs/)
 - [Changelog](CHANGELOG.md)
 - [Contributing](CONTRIBUTING.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Real agent setup](docs/REAL_AGENTS.md)
 
 ## License
 
