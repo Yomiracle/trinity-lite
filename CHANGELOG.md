@@ -1,6 +1,15 @@
 # Changelog
 
 All notable changes to Trinity Lite are documented here.
+
+## v0.2.3 - 2026-06-23
+
+### Changed
+
+- Updated project description and tagline in pyproject.toml.
+- Marked all 0.x releases (v0.1.3 through v0.2.2) as pre-release to match Alpha status.
+- README rewritten with sharper voice.
+
 ## v0.2.2 - 2026-06-22
 
 ### Added
