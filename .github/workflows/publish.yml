@@ -22,7 +22,8 @@ jobs:
 
       - name: Run tests
         run: |
-          python3 -m unittest discover -s tests -v
+          python3 -m pip install pytest
+          python3 -m pytest tests/ -x -q
           python3 -m compileall -q trinity_lite
           python3 -m trinity_lite doctor --scan-root .
 
