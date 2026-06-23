@@ -1,6 +1,32 @@
 # Changelog
 
 All notable changes to Trinity Lite are documented here.
+## v0.2.2 - 2026-06-22
+
+### Added
+
+- **`trinity_skill_search`** and **`trinity_skill_load` MCP tools**: search skills across installed agent-skill-system packages and load a skill's full content (SKILL.md + linked files).
+- Search and load skills from agent-skill-system before dispatching tasks.
+- Graceful fallback when agent-skill-system is not installed.
+
+## v0.2.1 - 2026-06-22
+
+### Added
+
+- **`trinity_skill_search`** and **`trinity_skill_load` MCP tools**: search and load skills from agent-skill-system packages.
+- Graceful fallback when agent-skill-system is not installed.
+- Optional dependency: `pip install trinity-lite[agent-skill]`.
+
+## v0.2.0 - 2026-06-22
+
+### Added
+
+- **MCP Server**: AI agents (Codex, Claude Code) can call Trinity Lite directly as tools via JSON-RPC 2.0 over STDIO.
+- New CLI: `trinity-lite mcp serve [--db/routes/agents]`.
+- 8 MCP tools: `dispatch`, `dispatch_auto`, `status`, `tasks`, `worker`, `doctor`, `inbox`, `send`.
+- 3 MCP resources: `trinity://health`, `trinity://tasks/recent`, `trinity://tasks/{task_id}`.
+- 37 new tests (total: 105).
+- Zero new runtime dependencies — stdlib only.
 
 ## v0.1.4 - 2026-06-22
 
