@@ -25,11 +25,9 @@ def _version() -> str:
     """Return the installed version, favouring importlib.metadata."""
     try:
         from importlib.metadata import PackageNotFoundError, version  # Python >= 3.8
-
         return version("trinity-lite")
     except (ImportError, PackageNotFoundError):
         from . import __version__
-
         return __version__  # pragma: no cover — fallback for development
 
 
@@ -41,7 +39,8 @@ Quick demo:  trinity-lite demo
 Full help:   trinity-lite --help
 
 Commands: demo, dispatch, dispatch-auto, worker, orchestrate,
-          status, tasks, route, doctor, send, inbox, mcp"""
+          status, tasks, route, doctor, send, inbox, mcp,
+          setup-models, detect-models"""
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -128,6 +127,14 @@ def build_parser() -> argparse.ArgumentParser:
 
     demo = sub.add_parser("demo", parents=[common], help="run a guided first-run demo")
 
+    # Model pool commands
+    setup_models = sub.add_parser("setup-models", parents=[common],
+                                   help="interactive model pool setup (no JSON knowledge needed)")
+    detect_models = sub.add_parser("detect-models", parents=[common],
+                                    help="auto-detect available LLM backends from your environment")
+    detect_models.add_argument("--no-save", action="store_true",
+                                help="print result without saving to disk")
+
     mcp = sub.add_parser("mcp", help="MCP server control")
     mcp_sub = mcp.add_subparsers(dest="mcp_command")
     mcp_sub.required = False
@@ -139,7 +146,6 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
 
-    # No-args: show friendly intro
     if argv is None:
         argv = sys.argv[1:]
     if not argv:
@@ -148,12 +154,10 @@ def main(argv: list[str] | None = None) -> int:
 
     args = parser.parse_args(argv)
 
-    # --version flag (before subcommand)
     if args.version:
         print(f"trinity-lite {_version()}")
         return 0
 
-    # No subcommand but unknown args → show friendly intro
     if args.command is None:
         print(BANNER)
         return 0
@@ -243,7 +247,6 @@ def run_command(args: argparse.Namespace) -> int:
         if args.daemon:
             pid_file = args.pid_file or str(_default_pid_path(args.agent))
             return run_loop(args.agent, bus, args.agents, args.poll, pid_file=pid_file)
-        # Default: loop without daemon features (backwards compatible)
         run_loop(args.agent, bus, args.agents, args.poll)
         return 0
     if args.command == "send":
@@ -267,9 +270,23 @@ def run_command(args: argparse.Namespace) -> int:
     if args.command == "mcp":
         return _mcp(args, bus)
 
+    # Model pool commands (no bus needed)
+    if args.command == "setup-models":
+        from .model_pool_wizard import main as wizard_main
+        wizard_main()
+        return 0
+    if args.command == "detect-models":
+        from .model_autodetect import scan, save_pool
+        pool = scan()
+        print(f"Detected {len(pool)} backend(s):")
+        for name, info in pool.items():
+            print(f"  • {name} ({info['tier']}) — {', '.join(info['strengths'][:3])}")
+        if not getattr(args, "no_save", False):
+            path = save_pool(pool)
+            print(f"Saved to {path}")
+        return 0
+
     raise AssertionError(f"unhandled command: {args.command}")
-
-
 def _wait_for_task(
     bus: TrinityBus,
     task_id: str,

@@ -61,6 +61,7 @@ LangGraph and CrewAI give you primitives for building agents from scratch — gr
 - **Check health in one pass.** `trinity-lite doctor` verifies Python, SQLite, route config, agent config, and publish readiness.
 - **Zero dependencies.** Runtime is Python standard library only. Nothing to install but Python 3.10+.
 - **109 tests guarding the surface area.** Mock workflows, safety checks, routing, persistence — all covered.
+- **Smart model selection.** Automatically picks the right LLM for each task. Simple CRUD → cheap model. Architecture design → strong reasoning model. Define your own model pool with tiers and strength tags.
 
 ## Install
 
@@ -127,6 +128,48 @@ trinity-lite mcp serve
 | `trinity_skill_load` | Load the full content of a named skill |
 
 **3 resources:** `trinity://health`, `trinity://tasks/recent`, `trinity://tasks/{task_id}`
+
+## Model Selector (NEW in v0.4.0)
+
+Auto-pick the best LLM for each task based on complexity:
+
+```bash
+# Auto-detect your available models (zero config)
+trinity-lite detect-models
+
+# Or set up interactively (no JSON needed)
+trinity-lite setup-models
+```
+
+**How it works**: Define your model pool with tiers (`budget` / `standard` / `premium`) and strength tags. The selector picks automatically:
+
+| Task | → Tier | → Model |
+|---|---|---|
+| "Fix typo in README" | budget | cheap model |
+| "Add search endpoint" | budget | cheap model |
+| "Refactor auth module" | standard | mid-tier |
+| "Design microservice architecture" | premium | strongest |
+
+**Manual call** (API usage):
+
+```python
+from trinity_lite.model_selector import select_model
+
+result = select_model("Design a rate limiter", task_type="architecture_design")
+print(result["model"])  # → gpt-5.5
+print(result["reason"]) # → hard_signal:architecture
+```
+
+**Custom pool** — create `~/.trinity/model_pool.json`:
+
+```json
+{
+  "your-cheap-model": {"tier": "budget", "strengths": ["coding"], "api_type": "anthropic"},
+  "your-strong-model": {"tier": "premium", "strengths": ["reasoning", "architecture"], "api_type": "openai"}
+}
+```
+
+Works with 1 model, 2 models, or 10 models. No agent names hardcoded.
 
 ## Links
 
