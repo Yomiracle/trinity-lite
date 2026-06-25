@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from .adapters import load_specs
-from .bus import TrinityBus
+from .bus import TASK_EVIDENCE_COLUMNS, TrinityBus
 from .guard import scan_public_tree
 from .router import load_routes
 from .validation import validate_agents_config, validate_routes_config
@@ -45,6 +45,7 @@ def run_doctor(
         bus = TrinityBus(db_path)
         bus.list_tasks(limit=1)
         checks.append({"name": "sqlite_bus", "ok": True, "detail": str(bus.db_path)})
+        checks.extend(_bus_acceptance_checks(bus))
     except Exception as exc:  # pragma: no cover - defensive report
         checks.append({"name": "sqlite_bus", "ok": False, "detail": str(exc)})
 
@@ -102,6 +103,42 @@ def run_doctor(
         "status": "healthy" if all(c["ok"] for c in checks) else "unhealthy",
         "checks": checks,
     }
+
+
+def _bus_acceptance_checks(bus: TrinityBus) -> list[dict[str, Any]]:
+    with bus.connect() as conn:
+        columns = {
+            row["name"]
+            for row in conn.execute("PRAGMA table_info(tasks)").fetchall()
+        }
+        missing = sorted(set(TASK_EVIDENCE_COLUMNS) - columns)
+        consistency_rows = conn.execute(
+            """
+            SELECT id, gate_status, review_task_id, acceptance_status,
+                   accepted_at, verification_json
+            FROM tasks
+            WHERE (acceptance_status='accepted' AND accepted_at IS NULL)
+               OR (acceptance_status='accepted' AND verification_json IS NULL)
+               OR (accepted_at IS NOT NULL AND (acceptance_status IS NULL OR acceptance_status!='accepted'))
+               OR (review_task_id IS NOT NULL AND gate_status IS NULL)
+               OR (gate_status='verification_failed' AND (acceptance_status IS NULL OR acceptance_status!='blocked'))
+            ORDER BY created_at DESC
+            LIMIT 20
+            """
+        ).fetchall()
+
+    return [
+        {
+            "name": "acceptance_schema",
+            "ok": not missing,
+            "detail": "schema ok" if not missing else {"missing": missing},
+        },
+        {
+            "name": "acceptance_consistency",
+            "ok": not consistency_rows,
+            "detail": "ok" if not consistency_rows else [dict(row) for row in consistency_rows],
+        },
+    ]
 
 
 def _runtime_checks(runtime_root: str) -> list[dict[str, Any]]:

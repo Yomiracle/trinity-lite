@@ -93,13 +93,15 @@ Instead of requiring users to rebuild agents inside a new framework, it wraps CL
 
 ## Current Scope
 
-Trinity Lite v0.1 is a public local MVP:
+Trinity Lite v0.5 is a public local-first package:
 
 - CLI first;
 - mock-agent demo first;
-- no runtime dependencies;
-- no MCP server yet;
-- no orchestrator yet;
+- zero runtime dependencies for core bus/CLI;
+- optional MCP server;
+- YAML pipeline orchestration;
+- model selection helpers;
+- primary -> review -> local verification acceptance gate;
 - not a production distributed execution engine.
 
 ## Roadmap Narrative
@@ -110,6 +112,8 @@ Trinity Lite grows in layers:
 v0.1 local bus + CLI + mock/command workers + capability routing
 v0.2 MCP server for direct agent tool calls
 v0.3 orchestrator for primary work -> review -> verification
+v0.4 model selector for task-aware backend choice
+v0.5 persistent acceptance evidence and local verification gate
 v1.0 stable CLI/schema/package
 ```
 

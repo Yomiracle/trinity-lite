@@ -54,13 +54,14 @@ LangGraph and CrewAI give you primitives for building agents from scratch — gr
 - **Route by capability.** Tag agents with `implement`, `review`, `audit` — the router matches tasks to the agent that can do them. No agent names in your dispatch logic.
 - **Dispatch directly when you need control.** Bypass the router and send a task straight to `claude_code` or `codex`. Best of both worlds.
 - **Persist everything in SQLite.** Tasks, statuses, results, errors, and messages in one local file. Query it with `sqlite3` or any tool that speaks SQL.
+- **Accept with evidence, not vibes.** The review flow records route decisions, review links, verification results, acceptance reasons, and `accepted_at` in SQLite. A reviewed task is accepted only after the local verifier passes.
 - **Run CLI workers on demand.** `trinity-lite worker codex --once` pulls one queued task, executes the agent's command, and writes the result. Run it in a loop, in cron, or by hand.
 - **Execute safely, no shell injection.** Agent commands are JSON arrays run with `shell=False`. No string interpolation into a shell. No surprises.
 - **Test with mock agents.** Mock agents simulate the full cycle without real CLIs. Prototype routing, persistence, and review handoffs first. Wire up real agents later.
 - **Guard against runaway delegation.** Self-delegation is blocked. Delegation depth is capped. Working directories are allowlisted. Safe by default.
 - **Check health in one pass.** `trinity-lite doctor` verifies Python, SQLite, route config, agent config, and publish readiness.
 - **Zero dependencies.** Runtime is Python standard library only. Nothing to install but Python 3.10+.
-- **109 tests guarding the surface area.** Mock workflows, safety checks, routing, persistence — all covered.
+- **130+ tests guarding the surface area.** Mock workflows, safety checks, routing, persistence, MCP, and acceptance gates — all covered.
 - **Smart model selection.** Automatically picks the right LLM for each task. Simple CRUD → cheap model. Architecture design → strong reasoning model. Define your own model pool with tiers and strength tags.
 
 ## Install
@@ -74,7 +75,7 @@ Python 3.10+. Zero runtime dependencies. Standard library only.
 ### Optional extras
 
 ```bash
-pip install trinity-lite[mcp]           # MCP server — 10 tools + 3 resources
+pip install trinity-lite[mcp]           # MCP server — 12 tools + 3 resources
 pip install trinity-lite[agent-skill]   # agent-skill-system integration
 ```
 
@@ -112,15 +113,17 @@ pip install trinity-lite[mcp]
 trinity-lite mcp serve
 ```
 
-**10 tools:**
+**12 tools:**
 
 | Tool | What it does |
 |------|--------------|
 | `trinity_dispatch` | Dispatch a task to a specific agent |
 | `trinity_dispatch_auto` | Dispatch and let the capability router pick the agent |
+| `trinity_orchestrate` | Run the default review flow or a YAML pipeline |
 | `trinity_status` | Get the state and result of any task by ID |
 | `trinity_tasks` | List recent tasks, filterable by agent |
 | `trinity_worker` | Run one worker cycle for an agent |
+| `trinity_worker_daemon` | Start, stop, or inspect a daemon worker |
 | `trinity_doctor` | Run health and diagnostic checks |
 | `trinity_inbox` | Read durable messages for an agent |
 | `trinity_send` | Send a message from one agent to another |
@@ -128,6 +131,18 @@ trinity-lite mcp serve
 | `trinity_skill_load` | Load the full content of a named skill |
 
 **3 resources:** `trinity://health`, `trinity://tasks/recent`, `trinity://tasks/{task_id}`
+
+## Acceptance Evidence (NEW in v0.5.0)
+
+`trinity-lite orchestrate` now writes a local acceptance trail to the task row:
+
+- `route_json`: JSON-encoded route decision used for primary dispatch
+- `review_task_id` and `parent_task_id`: links between primary work and secondary review
+- `gate_status`: `primary_pending`, `review_pending`, `review_passed`, `review_attention`, `verification_failed`, or `accepted`
+- `verification_json`: JSON-encoded local verifier result, defaulting to `trinity-lite doctor`
+- `acceptance_status`, `acceptance_reason`, and `accepted_at`
+
+If the reviewer reports P0/P1 findings, the flow stops at `review_attention`. If local verification fails, it stops at `verification_failed`. `accepted_at` is written only after the required review and verification pass.
 
 ## Model Selector (NEW in v0.4.0)
 

@@ -5,6 +5,7 @@ import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
 
+from trinity_lite import __version__
 from trinity_lite.cli import main
 
 
@@ -263,6 +264,8 @@ class CliTest(unittest.TestCase):
             self.assertEqual(code, 0)
             text = output.getvalue()
             self.assertIn('"acceptance_status": "accepted"', text)
+            self.assertIn('"verification"', text)
+            self.assertIn('"accepted_at"', text)
 
 
     def test_demo_command_produces_friendly_output(self):
@@ -287,14 +290,14 @@ class CliTest(unittest.TestCase):
         with redirect_stdout(output):
             code = main(["version"])
         self.assertEqual(code, 0)
-        self.assertIn("trinity-lite", output.getvalue())
+        self.assertEqual(output.getvalue().strip(), f"trinity-lite {__version__}")
 
     def test_version_flag_prints_version(self):
         output = io.StringIO()
         with redirect_stdout(output):
             code = main(["--version"])
         self.assertEqual(code, 0)
-        self.assertIn("trinity-lite", output.getvalue())
+        self.assertEqual(output.getvalue().strip(), f"trinity-lite {__version__}")
 
     def test_no_args_shows_banner(self):
         output = io.StringIO()

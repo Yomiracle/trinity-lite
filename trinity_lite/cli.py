@@ -22,13 +22,10 @@ def print_json(data: Any) -> None:
 
 
 def _version() -> str:
-    """Return the installed version, favouring importlib.metadata."""
-    try:
-        from importlib.metadata import PackageNotFoundError, version  # Python >= 3.8
-        return version("trinity-lite")
-    except (ImportError, PackageNotFoundError):
-        from . import __version__
-        return __version__  # pragma: no cover — fallback for development
+    """Return the package source version."""
+    from . import __version__
+
+    return __version__
 
 
 BANNER = """\
@@ -199,6 +196,7 @@ def run_command(args: argparse.Namespace) -> int:
             prompt=args.task,
             task_type=route["task_type"],
             cwd=args.cwd,
+            route=route,
         )
         task["route"] = route
         if getattr(args, "wait", False):
@@ -318,7 +316,7 @@ def _wait_for_flow(
     """Run workers to complete a review flow until terminal."""
     import time as _time
     from .bus import TERMINAL_STATUSES
-    from .orchestrator import _review_prompt
+    from .orchestrator import apply_acceptance_gate, dispatch_review_task, _json_field
 
     primary_id = flow["primary_task"]["id"]
     primary_agent = flow["route"]["agent"]
@@ -342,21 +340,8 @@ def _wait_for_flow(
         if (primary["status"] == "completed"
                 and route["review_required"]
                 and not review_dispatched):
-            review_prompt_text = _review_prompt(primary)
-            review_route = resolve_route(
-                review_prompt_text,
-                "code_review",
-                route["agent"],
-                routes_path,
-                agents_path,
-            )
-            review_task = bus.submit_task(
-                source_agent=route["agent"],
-                target_agent=review_route["agent"],
-                prompt=review_prompt_text,
-                task_type=review_route["task_type"],
-                cwd=primary["cwd"],
-                depth=int(primary["depth"]) + 1,
+            review_route, review_task = dispatch_review_task(
+                bus, primary, route, routes_path, agents_path
             )
             review_id = review_task["id"]
             review_agent = review_route["agent"]
@@ -370,12 +355,21 @@ def _wait_for_flow(
             review_done = review_task["status"] in TERMINAL_STATUSES
 
         if primary["status"] in TERMINAL_STATUSES and review_done:
+            review_task = bus.get_task(review_id) if review_id is not None else None
+            primary = apply_acceptance_gate(
+                bus,
+                route,
+                primary,
+                review_task,
+                routes_path=routes_path,
+                agents_path=agents_path,
+            )
             flow["primary_task"] = primary
             if review_id is not None:
-                flow["review_task"] = bus.get_task(review_id)
-            flow["acceptance_status"] = _acceptance_status_from_flow(
-                flow["route"], primary, flow.get("review_task")
-            )
+                flow["review_task"] = review_task
+            flow["verification"] = _json_field(primary.get("verification_json"))
+            flow["acceptance_status"] = primary.get("acceptance_status")
+            flow["accepted_at"] = primary.get("accepted_at")
             return flow
 
         if primary["status"] not in TERMINAL_STATUSES:
@@ -384,15 +378,6 @@ def _wait_for_flow(
             run_once(review_agent, bus, agents_path, task_id=review_id)
         _time.sleep(0.1)
     raise TimeoutError(f"flow for {primary_id} did not finish within {timeout}s")
-
-
-def _acceptance_status_from_flow(
-    route: dict[str, Any],
-    primary_task: dict[str, Any],
-    review_task: dict[str, Any] | None,
-) -> str:
-    from .orchestrator import _acceptance_status
-    return _acceptance_status(route, primary_task, review_task)
 
 
 def _mcp(args: argparse.Namespace, bus: TrinityBus) -> int:

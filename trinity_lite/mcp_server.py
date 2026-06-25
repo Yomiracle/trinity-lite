@@ -20,6 +20,7 @@ from .guard import GuardError
 from .pipeline import load_pipeline, run_pipeline
 from .router import resolve_route
 from .worker import _default_pid_path, _read_pid_file, run_once as worker_run_once
+from . import __version__
 
 # ---------------------------------------------------------------------------
 # agent-skill-system integration (optional, graceful fallback)
@@ -68,7 +69,7 @@ def _init_skill_engine() -> bool:
 JSONRPC_VERSION = "2.0"
 PROTOCOL_VERSION = "2024-11-05"
 SERVER_NAME = "trinity-lite-mcp"
-SERVER_VERSION = "0.3.1"
+SERVER_VERSION = __version__
 
 # ---------------------------------------------------------------------------
 # Tool definitions (MCP schema)
@@ -291,6 +292,9 @@ def _compact_task(task):
         "id", "source_agent", "target_agent", "task_type", "prompt",
         "cwd", "status", "depth", "result", "error",
         "created_at", "started_at", "finished_at",
+        "parent_task_id", "review_task_id", "gate_status",
+        "gate_updated_at", "route_json", "verification_json",
+        "acceptance_status", "acceptance_reason", "accepted_at",
     ]
     return {k: task[k] for k in keys if k in task}
 
@@ -449,6 +453,7 @@ def _handle_trinity_dispatch_auto(params, bus, agents_path, routes_path):
         prompt=prompt,
         task_type=route["task_type"],
         cwd=cwd,
+        route=route,
     )
     worker_run_once(target, bus, agents_path, task_id=task["id"])
     task = bus.get_task(task["id"])

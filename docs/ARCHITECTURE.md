@@ -32,8 +32,27 @@ The optional `orchestrate` command composes the same pieces:
 ```text
 route primary -> submit -> run primary worker once
               -> if review_required, route code_review
-              -> submit -> run reviewer once -> acceptance_status
+              -> submit -> run reviewer once
+              -> run local verifier
+              -> persist gate_status, verification_json, acceptance_status, accepted_at
 ```
+
+## Acceptance Gate
+
+The bus stores lightweight acceptance evidence on task rows:
+
+- `route_json`: JSON-encoded route decision used for dispatch
+- `parent_task_id` / `review_task_id`: review linkage
+- `gate_status` and `gate_updated_at`: current review or acceptance state
+- `verification_json`: JSON-encoded local verifier output
+- `acceptance_status` and `acceptance_reason`: accepted, blocked, queued, needs_review, or review_attention
+- `accepted_at`: set only after required review and verification pass
+
+The default verifier calls `trinity_lite.doctor.run_doctor()` against the same
+bus, routes, and agents config. Applications can pass a custom verifier to
+`run_review_flow()` when they need project-specific checks. Supported verifier
+signatures are `verifier()`, `verifier(context)`, and `verifier(bus, task_id)`.
+The context contains `bus`, `task`, `task_id`, `routes_path`, and `agents_path`.
 
 ## Why SQLite
 

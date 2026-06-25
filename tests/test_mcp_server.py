@@ -7,6 +7,7 @@ import unittest
 from pathlib import Path
 
 from trinity_lite.bus import TrinityBus
+from trinity_lite import __version__
 from trinity_lite.mcp_server import (
     handle_request,
     serve,
@@ -68,7 +69,7 @@ class McpServerTest(unittest.TestCase):
         self.assertIn("resources", resp["result"]["capabilities"])
         self.assertIn("serverInfo", resp["result"])
         self.assertEqual(resp["result"]["serverInfo"]["name"], "trinity-lite-mcp")
-        self.assertEqual(resp["result"]["serverInfo"]["version"], "0.3.1")
+        self.assertEqual(resp["result"]["serverInfo"]["version"], __version__)
 
     def test_initialized_returns_none(self):
         resp = self._call(self._msg("initialized"))
@@ -262,6 +263,8 @@ class McpServerTest(unittest.TestCase):
         self.assertEqual(result["route"]["agent"], "codex")
         self.assertEqual(result["route"]["task_type"], "implementation")
         self.assertEqual(result["status"], "completed")
+        self.assertIn("route_json", result)
+        self.assertIsNotNone(result["route_json"])
 
     # ---- tools/call: trinity_tasks ----
 
@@ -460,11 +463,16 @@ class McpServerTest(unittest.TestCase):
             "created_at": "now",
             "started_at": None,
             "finished_at": None,
+            "route_json": "{}",
+            "verification_json": None,
+            "acceptance_status": "queued",
+            "accepted_at": None,
             "extra_field": "should be removed",
         }
         compact = _compact_task(task)
         self.assertNotIn("extra_field", compact)
         self.assertEqual(compact["id"], "abc123def456")
+        self.assertEqual(compact["acceptance_status"], "queued")
 
 
     # ---- Skills: agent-skill-system integration ----

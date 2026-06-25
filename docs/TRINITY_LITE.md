@@ -35,13 +35,15 @@ trinity-lite status <task_id>
 ## 5. Run a Review Flow
 
 The optional orchestrator dispatches the primary task, runs the selected worker
-once, and runs a required review once:
+once, runs a required review once, then runs local verification before accepting:
 
 ```bash
 trinity-lite orchestrate "implement a parser"
 ```
 
 It uses the same routes and agent configs as `dispatch-auto`.
+The primary task row records `route_json`, `review_task_id`, `gate_status`,
+`verification_json`, `acceptance_status`, `acceptance_reason`, and `accepted_at`.
 
 ## 6. Switch to Real Commands
 

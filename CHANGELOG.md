@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.5.0 - 2026-06-26
+
+### Added
+
+- **Persistent Acceptance Evidence**: `TrinityBus` task rows now store route decisions, review links, gate state, verification output, acceptance reasons, and `accepted_at`.
+- **Local Acceptance Gate**: `run_review_flow()` accepts work only after the primary task completes, required review passes, and the local verifier passes. The default verifier runs `trinity-lite doctor`; applications can pass a custom verifier.
+- **Doctor Consistency Checks**: `trinity-lite doctor` validates acceptance schema migration and flags inconsistent accepted or verification-failed rows.
+- **MCP Evidence Output**: task resources and tool responses include acceptance evidence fields.
+
+### Changed
+
+- `dispatch-auto` persists `route_json` instead of returning route decisions only in memory.
+- CLI and MCP server versions now read from package `__version__`, avoiding stale installed metadata when running from source.
+- Existing SQLite databases are migrated in place with additive nullable acceptance columns.
+
 ## v0.4.0 - 2026-06-24
 
 ### Added

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import json
 import sqlite3
 import uuid
 from datetime import datetime, timezone
@@ -15,11 +16,27 @@ from .paths import default_allowed_roots, default_db_path
 
 MAX_DEPTH = 2
 TERMINAL_STATUSES = {"completed", "failed", "cancelled"}
+TASK_EVIDENCE_COLUMNS = {
+    "parent_task_id": "TEXT",
+    "review_task_id": "TEXT",
+    "gate_status": "TEXT",
+    "gate_updated_at": "TEXT",
+    "route_json": "TEXT",
+    "verification_json": "TEXT",
+    "acceptance_status": "TEXT",
+    "acceptance_reason": "TEXT",
+    "accepted_at": "TEXT",
+}
 
 
 def utc_now_iso() -> str:
     """Return current UTC time as an ISO 8601 string."""
     return datetime.now(timezone.utc).isoformat()
+
+
+def json_dumps(value: Any) -> str:
+    """Serialize evidence JSON deterministically."""
+    return json.dumps(value, ensure_ascii=False, sort_keys=True)
 
 
 class TrinityBus:
@@ -60,10 +77,20 @@ class TrinityBus:
                     created_at TEXT NOT NULL,
                     started_at TEXT,
                     finished_at TEXT,
-                    heartbeat_at TEXT
+                    heartbeat_at TEXT,
+                    parent_task_id TEXT,
+                    review_task_id TEXT,
+                    gate_status TEXT,
+                    gate_updated_at TEXT,
+                    route_json TEXT,
+                    verification_json TEXT,
+                    acceptance_status TEXT,
+                    acceptance_reason TEXT,
+                    accepted_at TEXT
                 )
                 """
             )
+            self._ensure_task_columns(conn)
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS messages (
@@ -78,6 +105,15 @@ class TrinityBus:
                 """
             )
 
+    def _ensure_task_columns(self, conn: sqlite3.Connection) -> None:
+        columns = {
+            row["name"]
+            for row in conn.execute("PRAGMA table_info(tasks)").fetchall()
+        }
+        for name, column_type in TASK_EVIDENCE_COLUMNS.items():
+            if name not in columns:
+                conn.execute(f"ALTER TABLE tasks ADD COLUMN {name} {column_type}")
+
     def submit_task(
         self,
         source_agent: str,
@@ -86,6 +122,11 @@ class TrinityBus:
         task_type: str | None = None,
         cwd: str | os.PathLike[str] | None = None,
         depth: int = 0,
+        parent_task_id: str | None = None,
+        route: dict[str, Any] | None = None,
+        gate_status: str | None = None,
+        acceptance_status: str | None = None,
+        acceptance_reason: str | None = None,
     ) -> dict[str, Any]:
         if source_agent == target_agent:
             raise GuardError("self-delegation is not allowed")
@@ -94,14 +135,19 @@ class TrinityBus:
         workdir = ensure_inside_roots(cwd or os.getcwd(), self.allowed_roots)
         task_id = uuid.uuid4().hex[:12]
         now = utc_now_iso()
+        route_json = json_dumps(route) if route is not None else None
+        # Keep the initial gate timestamp visible until the orchestrator advances it.
+        gate_updated_at = now if gate_status else None
         with self.connect() as conn:
             conn.execute(
                 """
                 INSERT INTO tasks (
                     id, source_agent, target_agent, task_type, prompt, cwd,
-                    status, depth, created_at, heartbeat_at
+                    status, depth, created_at, heartbeat_at, parent_task_id,
+                    route_json, gate_status, gate_updated_at, acceptance_status,
+                    acceptance_reason
                 )
-                VALUES (?, ?, ?, ?, ?, ?, 'queued', ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, 'queued', ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     task_id,
@@ -113,6 +159,12 @@ class TrinityBus:
                     depth,
                     now,
                     now,
+                    parent_task_id,
+                    route_json,
+                    gate_status,
+                    gate_updated_at,
+                    acceptance_status,
+                    acceptance_reason,
                 ),
             )
         return self.get_task(task_id)
@@ -191,6 +243,27 @@ class TrinityBus:
             )
             if cur.rowcount == 0:
                 raise ValueError(f"task {task_id} is not in running state")
+        return self.get_task(task_id)
+
+    def update_task_evidence(self, task_id: str, **fields: Any) -> dict[str, Any]:
+        updates: dict[str, Any] = {}
+        for key, value in fields.items():
+            if key not in TASK_EVIDENCE_COLUMNS:
+                raise ValueError(f"unsupported task evidence column: {key}")
+            if key in {"route_json", "verification_json"} and value is not None and not isinstance(value, str):
+                value = json_dumps(value)
+            updates[key] = value
+        if not updates:
+            return self.get_task(task_id)
+
+        assignments = ", ".join(f"{key} = ?" for key in updates)
+        with self.connect() as conn:
+            cur = conn.execute(
+                f"UPDATE tasks SET {assignments} WHERE id = ?",
+                (*updates.values(), task_id),
+            )
+            if cur.rowcount == 0:
+                raise KeyError(f"task not found: {task_id}")
         return self.get_task(task_id)
 
     def send_message(

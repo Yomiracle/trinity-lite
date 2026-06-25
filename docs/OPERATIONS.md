@@ -92,10 +92,12 @@ run `trinity-lite doctor --retired-port <port>` for any released port.
 
 ## Review Gate Semantics
 
-Future orchestrator work should keep review states explicit:
+The orchestrator keeps review and acceptance states explicit:
 
-- `accepted`: primary work and required review passed.
+- `accepted`: primary work, required review, and local verification passed.
+- `review_passed`: secondary review passed; `acceptance_status` becomes `accepted` only after local verification also passes.
 - `review_attention`: review completed and found P0/P1 issues that need action.
+- `verification_failed`: review passed but local verification failed.
 - `blocked`: verification could not complete or a required dependency is absent.
 
 `review_attention` is not a stuck task. It is an actionable state that preserves
@@ -110,8 +112,9 @@ python3 -m pip install --upgrade trinity-lite
 trinity-lite doctor
 ```
 
-Trinity Lite follows semantic versioning. Patch releases (0.1.x) are
-backward-compatible — no configuration or data migration is needed.
+Trinity Lite follows semantic versioning. Existing SQLite task databases from
+the public v0.1+ schema are migrated in place when `TrinityBus` opens them. The
+v0.5 acceptance-evidence columns are additive and nullable.
 
 For a real local runtime with long-running workers or state, follow these
 additional steps:

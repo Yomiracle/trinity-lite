@@ -4,6 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from trinity_lite.bus import TrinityBus
 from trinity_lite.doctor import run_doctor
 
 
@@ -17,6 +18,32 @@ class DoctorTest(unittest.TestCase):
             state.mkdir()
             report = run_doctor(db_path=str(state / "bus.db"), scan_root=str(repo))
             self.assertEqual(report["status"], "healthy")
+            details = {check["name"]: check for check in report["checks"]}
+            self.assertEqual(details["acceptance_schema"]["detail"], "schema ok")
+            self.assertEqual(details["acceptance_consistency"]["detail"], "ok")
+
+    def test_doctor_rejects_inconsistent_acceptance_state(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bus = TrinityBus(root / "bus.db", allowed_roots=[root])
+            task = bus.submit_task("user", "codex", "build it", cwd=root)
+            bus.update_task_evidence(
+                task["id"],
+                gate_status="review_passed",
+                verification_json={"status": "passed", "checks": []},
+                acceptance_status="accepted",
+                accepted_at=None,
+            )
+
+            report = run_doctor(db_path=str(root / "bus.db"))
+
+            self.assertEqual(report["status"], "unhealthy")
+            consistency = next(
+                check for check in report["checks"]
+                if check["name"] == "acceptance_consistency"
+            )
+            self.assertFalse(consistency["ok"])
+            self.assertEqual(consistency["detail"][0]["id"], task["id"])
 
     def test_doctor_unhealthy_on_private_file(self):
         with tempfile.TemporaryDirectory() as tmp:
