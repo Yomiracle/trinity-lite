@@ -5,19 +5,20 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![PyPI](https://img.shields.io/pypi/v/trinity-lite.svg)](https://pypi.org/project/trinity-lite/)
 
-**The bus that lets your AI agents talk to each other.**
+**Local-first multi-agent orchestration for CLI AI agents.**
 
 [中文 README](README_zh.md)
 
 ## The problem
 
-You already use Claude Code. Maybe you just installed Codex. You want them to collaborate — but there's no built-in way to route tasks between them, remember who did what, or stop them from stepping on each other. Trinity Lite is the missing layer.
+You already use Claude Code. Maybe you just installed Codex. You want them to collaborate, review each other, and leave an audit trail you can inspect later. But there is no built-in way to route tasks between local CLI agents, remember who did what, or decide when work is actually accepted. Trinity Lite is the missing layer.
 
 ## What it does
 
 - **Route by capability, not name.** You describe the task. The router matches it to the right agent — no hardcoded agent names, no fragile dispatch logic. *"Implement a rate limiter" lands on the agent you tagged `implement`. "Review the auth module" goes to the agent tagged `review`.*
 - **Give every agent a pull queue.** Workers read pending tasks from the shared bus, execute them via CLI, and write results back. Each agent polls on its own schedule. You never copy-paste an output between terminals again.
 - **Remember every decision.** Every task, status change, result, error, and inter-agent message lands in a local SQLite database. Query who did what, when, and what happened — without setting up a logging pipeline.
+- **Review, verify, then accept.** `orchestrate` runs primary work, routes the required review, runs local verification, and writes acceptance evidence back to SQLite.
 - **Block footguns before they fire.** Self-delegation loops are rejected. Delegation depth has a hard cap. Working directories must be in the allowlist. You ship features, not incident reports.
 
 ## Quick start
@@ -27,27 +28,25 @@ You already use Claude Code. Maybe you just installed Codex. You want them to co
 ```bash
 pip install trinity-lite
 trinity-lite doctor
-trinity-lite dispatch-auto "implement a hello-world function"
-trinity-lite worker codex --once
-trinity-lite tasks
+trinity-lite orchestrate "implement a hello-world function"
 ```
 
-Mock agents are built in. You see the full dispatch → execute → result cycle before you wire up anything real.
+Mock agents are built in. You see the full route → work → review → verify → accept cycle before you wire up anything real.
 
 ## Not another framework
 
 Trinity Lite doesn't build agents. It connects the agents you already have.
 
-LangGraph and CrewAI give you primitives for building agents from scratch — graph definitions, role abstractions, tool wrappers. Trinity Lite starts from the opposite end: Claude Code is running in one terminal, Codex is running in another, and they need a shared task bus, durable state, and safety boundaries. No SDK to learn. No new agent abstraction. Just a bus that works with the CLIs you already use.
+LangGraph and CrewAI give you primitives for building agents from scratch — graph definitions, role abstractions, tool wrappers. Trinity Lite starts from the opposite end: Claude Code is running in one terminal, Codex is running in another, and they need routing, review handoff, durable state, and an acceptance trail. No SDK to learn. No new agent abstraction. Just a local workflow layer for the CLIs you already use.
 
 ## Who this is for
 
 | You are... | Trinity Lite helps you... |
 |------------|---------------------------|
-| Copy-pasting prompts and outputs between two agent terminals all day | Dispatch once to the bus and let agents pull their own work |
+| Copy-pasting prompts and outputs between two agent terminals all day | Run one orchestrated flow and inspect the evidence afterward |
 | Prototyping a multi-agent pipeline before committing infrastructure | Run the full flow with mock agents — no API keys, no provisioning |
 | Running everything on a single machine with zero server setup | Keep your state in SQLite, your runtime in stdlib, your daemon count at zero |
-| Showing a colleague how multi-agent collaboration works | `pip install` → five commands → they see it run. No explanation needed. |
+| Showing a colleague how multi-agent collaboration works | `pip install` → `trinity-lite orchestrate` → they see it run. No explanation needed. |
 
 ## Features
 
@@ -81,27 +80,27 @@ pip install trinity-lite[agent-skill]   # agent-skill-system integration
 
 ## Workflow example
 
-Hermes routes → Codex implements → Claude Code reviews. Five commands, one audit trail.
+Route primary work → run the worker → run the reviewer → verify → accept. One command, one audit trail.
 
 ```bash
-# Hermes sends the task. The router picks Codex automatically.
-trinity-lite dispatch-auto "implement a rate limiter for the API" --source-agent hermes
-
-# Codex pulls the task and runs it.
-trinity-lite worker codex --once --agents agents.local.json
-
-# Claude Code reviews the result.
-trinity-lite send claude_code "please review task <task_id>" --source-agent hermes
-trinity-lite worker claude_code --once --agents agents.local.json
-
-# Read the full trail.
-trinity-lite status <task_id>
+trinity-lite orchestrate "implement a rate limiter for the API"
 ```
 
-Works immediately with mock agents. Ready for real CLIs when you are:
+The primary task row records `route_json`, `review_task_id`, `verification_json`, `acceptance_status`, `acceptance_reason`, and `accepted_at`.
+
+Ready for real CLIs when you are:
 
 ```bash
 cp examples/agents.command.example.json agents.local.json
+trinity-lite orchestrate "implement a rate limiter for the API" --agents agents.local.json
+```
+
+Prefer manual control? Use the lower-level bus commands:
+
+```bash
+trinity-lite dispatch-auto "implement a parser"
+trinity-lite worker codex --once
+trinity-lite tasks
 ```
 
 ## MCP server
@@ -132,7 +131,7 @@ trinity-lite mcp serve
 
 **3 resources:** `trinity://health`, `trinity://tasks/recent`, `trinity://tasks/{task_id}`
 
-## Acceptance Evidence (NEW in v0.5.0)
+## Acceptance Evidence
 
 `trinity-lite orchestrate` now writes a local acceptance trail to the task row:
 
