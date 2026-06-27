@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.5.1 - 2026-06-27
+
+### Added
+
+- Added the optional `yaml` extra: `pip install "trinity-lite[yaml]"` installs `PyYAML` for YAML pipeline files.
+
+### Changed
+
+- GitHub Tests and Publish workflows now install the package with `.[yaml]` so pipeline YAML tests run in clean CI environments.
+- README and Chinese README now document the YAML, MCP, and agent-skill optional extras.
+
 ## v0.5.0 - 2026-06-26
 
 ### Added
