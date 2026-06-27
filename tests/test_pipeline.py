@@ -180,6 +180,29 @@ class PipelineTest(unittest.TestCase):
         self.assertEqual(data["pipeline_name"], "cli-pipe")
         self.assertEqual(data["overall_status"], "completed")
 
+    def test_cli_orchestrate_with_pipeline_wait_flag(self):
+        import io as _io
+        import json as _json
+        from contextlib import redirect_stdout as _redirect_stdout
+        from trinity_lite.cli import main
+        yaml_text = "name: cli-pipe\nsteps:\n  - id: step1\n    agent: codex\n    task_type: implementation\n    prompt_template: 'ok'\n"
+        pipeline_path = self._write_yaml("cli_wait_test.yaml", yaml_text)
+        output = _io.StringIO()
+        with _redirect_stdout(output):
+            code = main([
+                "orchestrate",
+                "test task",
+                "--pipeline", pipeline_path,
+                "--db", str(self.root / "cli_wait_bus.db"),
+                "--cwd", str(self.root),
+                "--wait",
+                "--wait-timeout", "10",
+            ])
+        self.assertEqual(code, 0)
+        data = _json.loads(output.getvalue())
+        self.assertEqual(data["pipeline_name"], "cli-pipe")
+        self.assertEqual(data["overall_status"], "completed")
+
 
 if __name__ == "__main__":
     unittest.main()

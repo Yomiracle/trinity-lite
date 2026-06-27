@@ -214,8 +214,10 @@ def run_command(args: argparse.Namespace) -> int:
                 args.agents,
                 args.source,
                 cwd=args.cwd,
-                run_workers=not args.no_run and not getattr(args, "wait", False),
+                run_workers=not args.no_run,
             )
+            print_json(result)
+            return 0
         else:
             result = run_review_flow(
                 args.task,
@@ -228,8 +230,8 @@ def run_command(args: argparse.Namespace) -> int:
                 args.cwd,
                 run_workers=not args.no_run and not getattr(args, "wait", False),
             )
-        if getattr(args, "wait", False):
-            result = _wait_for_flow(bus, result, args.agents, args.routes, args.wait_timeout)
+            if getattr(args, "wait", False):
+                result = _wait_for_flow(bus, result, args.agents, args.routes, args.wait_timeout)
         print_json(result)
         return 0
     if args.command == "status":

@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.5.2 - 2026-06-27
+
+### Fixed
+
+- Fixed `trinity-lite orchestrate --pipeline ... --wait` so YAML pipeline runs do not enter the review-flow wait path.
+
 ## v0.5.1 - 2026-06-27
 
 ### Added
