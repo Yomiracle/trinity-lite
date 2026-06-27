@@ -76,8 +76,8 @@ SERVER_VERSION = __version__
 # ---------------------------------------------------------------------------
 
 
-def _tool_def(name, description, properties, required):
-    return {
+def _tool_def(name, description, properties, required, annotations=None):
+    tool = {
         "name": name,
         "description": description,
         "inputSchema": {
@@ -86,139 +86,230 @@ def _tool_def(name, description, properties, required):
             "required": required,
         },
     }
+    if annotations:
+        tool["annotations"] = annotations
+    return tool
+
+
+READ_ONLY_TOOL = {
+    "readOnlyHint": True,
+    "destructiveHint": False,
+    "idempotentHint": True,
+    "openWorldHint": False,
+}
+
+
+STATEFUL_LOCAL_TOOL = {
+    "readOnlyHint": False,
+    "destructiveHint": False,
+    "idempotentHint": False,
+    "openWorldHint": False,
+}
+
+
+AGENT_EXECUTION_TOOL = {
+    "readOnlyHint": False,
+    "destructiveHint": False,
+    "idempotentHint": False,
+    "openWorldHint": True,
+}
+
+
+def _desc(*parts):
+    return " ".join(part.strip() for part in parts)
 
 
 TOOL_DEFINITIONS = [
     _tool_def(
         "trinity_dispatch",
-        "Dispatch an asynchronous task to a specific Trinity agent.",
+        _desc(
+            "Create a durable task for one explicit Trinity agent and run one worker cycle for that agent.",
+            "Use this when the caller already knows the target agent; use trinity_dispatch_auto when routing should choose the agent.",
+            "This writes to the local task database and may execute the configured agent command; with wait=true it returns the final compact task or a timeout error.",
+        ),
         {
-            "target_agent": {"type": "string", "description": "Agent id to receive the task"},
-            "task": {"type": "string", "description": "Task prompt"},
-            "source_agent": {"type": "string", "description": "Originating agent id (default: mcp)"},
-            "cwd": {"type": "string", "description": "Working directory (default: $HOME)"},
-            "task_type": {"type": "string", "description": "Task type for routing"},
-            "wait": {"type": "boolean", "description": "Block until task completes"},
-            "wait_timeout": {"type": "number", "description": "Timeout in seconds for wait"},
+            "target_agent": {"type": "string", "description": "Exact recipient agent id, such as codex, claude_code, or hermes."},
+            "task": {"type": "string", "description": "Task prompt to persist and deliver to the target agent."},
+            "source_agent": {"type": "string", "description": "Originating agent id recorded on the task; defaults to mcp."},
+            "cwd": {"type": "string", "description": "Working directory passed to the task; defaults to the user's home directory."},
+            "task_type": {"type": "string", "description": "Optional task type metadata for routing and audit records."},
+            "wait": {"type": "boolean", "description": "If true, block until the task reaches a terminal state or wait_timeout expires."},
+            "wait_timeout": {"type": "number", "description": "Maximum seconds to wait when wait=true; defaults to the server wait timeout."},
         },
         ["target_agent", "task"],
+        AGENT_EXECUTION_TOOL,
     ),
     _tool_def(
         "trinity_dispatch_auto",
-        "Resolve the route automatically then dispatch.",
+        _desc(
+            "Resolve the best Trinity agent with the local route table, create a durable task, and run one worker cycle.",
+            "Use this when the caller has a task but should not pick the agent manually; use trinity_dispatch for an explicit target.",
+            "This writes route evidence and task state to the local database and may execute the selected agent command; the result includes compact task and route metadata.",
+        ),
         {
-            "task": {"type": "string", "description": "Task prompt"},
-            "source_agent": {"type": "string", "description": "Originating agent id (default: mcp)"},
-            "cwd": {"type": "string", "description": "Working directory (default: $HOME)"},
-            "task_type": {"type": "string", "description": "Task type hint"},
-            "previous_agent": {"type": "string", "description": "Previous agent for avoidance"},
-            "wait": {"type": "boolean", "description": "Block until task completes"},
-            "wait_timeout": {"type": "number", "description": "Timeout in seconds for wait"},
+            "task": {"type": "string", "description": "Task prompt used for route selection and delivery."},
+            "source_agent": {"type": "string", "description": "Originating agent id recorded on the task; defaults to mcp."},
+            "cwd": {"type": "string", "description": "Working directory passed to the selected agent; defaults to the user's home directory."},
+            "task_type": {"type": "string", "description": "Optional task type hint that can override or narrow route matching."},
+            "previous_agent": {"type": "string", "description": "Agent id to avoid when resolving opposite-review or retry routes."},
+            "wait": {"type": "boolean", "description": "If true, block until the routed task reaches a terminal state or wait_timeout expires."},
+            "wait_timeout": {"type": "number", "description": "Maximum seconds to wait when wait=true; defaults to the server wait timeout."},
         },
         ["task"],
+        AGENT_EXECUTION_TOOL,
     ),
     _tool_def(
         "trinity_orchestrate",
-        "Orchestrate a multi-step pipeline from a YAML file or run the default review flow.",
+        _desc(
+            "Run a multi-step Trinity workflow from a pipeline file or the built-in implement-then-review flow.",
+            "Use this for work that needs sequencing, review gates, or multiple task records; use dispatch tools for a single agent task.",
+            "This creates and updates local task records and may execute one or more configured agent commands; it returns pipeline or review-flow evidence.",
+        ),
         {
-            "task": {"type": "string", "description": "Task prompt"},
-            "source_agent": {"type": "string", "description": "Originating agent id (default: mcp)"},
-            "cwd": {"type": "string", "description": "Working directory (default: $HOME)"},
-            "task_type": {"type": "string", "description": "Task type hint"},
-            "previous_agent": {"type": "string", "description": "Previous agent for avoidance"},
-            "pipeline": {"type": "string", "description": "Path to pipeline YAML file"},
-            "wait": {"type": "boolean", "description": "Block until task completes"},
-            "wait_timeout": {"type": "number", "description": "Timeout in seconds for wait"},
+            "task": {"type": "string", "description": "Top-level task prompt for the pipeline or review flow."},
+            "source_agent": {"type": "string", "description": "Originating agent id recorded on created tasks; defaults to mcp."},
+            "cwd": {"type": "string", "description": "Working directory used by pipeline steps or review flow; defaults to home."},
+            "task_type": {"type": "string", "description": "Optional task type hint for the default review flow route."},
+            "previous_agent": {"type": "string", "description": "Agent id to avoid when resolving reviewer or retry routes."},
+            "pipeline": {"type": "string", "description": "Path to a YAML pipeline file; omit to run the default review flow."},
+            "wait": {"type": "boolean", "description": "Reserved for wait-aware clients; pipeline workers run in-process."},
+            "wait_timeout": {"type": "number", "description": "Reserved wait timeout in seconds for wait-aware orchestration clients."},
         },
         ["task"],
+        AGENT_EXECUTION_TOOL,
     ),
     _tool_def(
         "trinity_status",
-        "Get the current state and result of a task.",
+        _desc(
+            "Read the current state, result, route evidence, and acceptance metadata for one task id.",
+            "Use this after dispatch or orchestration to poll progress or recover a result after a timeout.",
+            "This is read-only and does not run workers or mark messages as read; it returns a compact task object or task-not-found error.",
+        ),
         {
-            "task_id": {"type": "string", "description": "Task identifier"},
+            "task_id": {"type": "string", "description": "Task identifier returned by dispatch, orchestration, or task listing."},
         },
         ["task_id"],
+        READ_ONLY_TOOL,
     ),
     _tool_def(
         "trinity_tasks",
-        "List recent tasks, optionally filtered by agent.",
+        _desc(
+            "List recent durable task records, optionally filtered by source or target agent.",
+            "Use this to inspect queue history or find a task id before calling trinity_status.",
+            "This is read-only, does not run workers, and returns compact task objects in recent-first order.",
+        ),
         {
-            "agent": {"type": "string", "description": "Filter by agent (source or target)"},
-            "limit": {"type": "integer", "description": "Maximum tasks to return (default: 20)"},
+            "agent": {"type": "string", "description": "Optional agent id to match against source_agent or target_agent."},
+            "limit": {"type": "integer", "description": "Maximum tasks to return; defaults to 20 and is capped by the server."},
         },
         [],
+        READ_ONLY_TOOL,
     ),
     _tool_def(
         "trinity_worker",
-        "Run one worker cycle for a named agent.",
+        _desc(
+            "Run one local worker cycle for a named agent and process one queued task if available.",
+            "Use this to manually drain the queue or retry a specific queued task; use trinity_worker_daemon for a background worker.",
+            "This may execute the agent command and update task state; it returns no_task or the compact processed task.",
+        ),
         {
-            "agent": {"type": "string", "description": "Agent id to run worker for"},
-            "task_id": {"type": "string", "description": "Process a specific queued task"},
+            "agent": {"type": "string", "description": "Agent id whose queue should be processed."},
+            "task_id": {"type": "string", "description": "Optional specific queued task id to process instead of the next task."},
         },
         ["agent"],
+        AGENT_EXECUTION_TOOL,
     ),
     _tool_def(
         "trinity_worker_daemon",
-        "Start, stop, or check status of a daemon worker.",
+        _desc(
+            "Start, stop, or check the local background worker process for one agent.",
+            "Use status for a process check, start to keep an agent queue draining, and stop to terminate that daemon.",
+            "Start and stop modify local process state and PID files; responses include running, started, stopped, pid, and pid_file fields.",
+        ),
         {
-            "agent": {"type": "string", "description": "Agent name"},
-            "action": {"type": "string", "enum": ["start", "stop", "status"], "description": "Action to perform"},
+            "agent": {"type": "string", "description": "Agent id whose worker daemon should be controlled."},
+            "action": {"type": "string", "enum": ["start", "stop", "status"], "description": "Daemon action: status checks process state, start launches, stop terminates."},
         },
         ["agent", "action"],
+        STATEFUL_LOCAL_TOOL,
     ),
     _tool_def(
         "trinity_doctor",
-        "Run health and diagnostic checks.",
+        _desc(
+            "Run Trinity Lite health, configuration, database, publish-readiness, and runtime hygiene checks.",
+            "Use this before release, after setup changes, or when routing and worker behavior looks wrong.",
+            "This is read-only: it scans configured files, database state, optional repository roots, and retired ports, then returns a structured health report.",
+        ),
         {
-            "scan_root": {"type": "string", "description": "Repository root for publish-readiness scan"},
-            "runtime_root": {"type": "string", "description": "Runtime directory for hygiene checks"},
+            "scan_root": {"type": "string", "description": "Optional repository root for publish-readiness and packaging checks."},
+            "runtime_root": {"type": "string", "description": "Optional runtime directory to inspect for local hygiene checks."},
             "retired_ports": {
                 "type": "array",
                 "items": {"type": "integer"},
-                "description": "Ports that should not be listening",
+                "description": "Optional TCP ports that should be unused; listening ports are reported as hygiene issues.",
             },
         },
         [],
+        READ_ONLY_TOOL,
     ),
     _tool_def(
         "trinity_inbox",
-        "Read durable messages addressed to an agent.",
+        _desc(
+            "Read durable inter-agent messages addressed to one agent from the local Trinity database.",
+            "Use this to recover completed work, review notes, or follow-up messages; use trinity_send to create a new message.",
+            "By default it reads unread messages, but mark_read=true updates message read state; it returns message records.",
+        ),
         {
-            "agent": {"type": "string", "description": "Agent whose inbox to read"},
-            "unread_only": {"type": "boolean", "description": "Return only unread messages (default: true)"},
-            "mark_read": {"type": "boolean", "description": "Mark returned messages as read"},
-            "limit": {"type": "integer", "description": "Maximum messages to return (default: 20)"},
+            "agent": {"type": "string", "description": "Recipient agent id whose inbox should be read."},
+            "unread_only": {"type": "boolean", "description": "When true, return only unread messages; defaults to true."},
+            "mark_read": {"type": "boolean", "description": "When true, mark returned messages as read after fetching them."},
+            "limit": {"type": "integer", "description": "Maximum messages to return; defaults to 20 and is capped by the server."},
         },
         ["agent"],
+        STATEFUL_LOCAL_TOOL,
     ),
     _tool_def(
         "trinity_send",
-        "Send a durable message to another agent.",
+        _desc(
+            "Write a durable message from one Trinity agent to another agent's inbox.",
+            "Use this for follow-up context, review handoffs, or task-linked notes; use trinity_dispatch to create executable work.",
+            "This writes to the local message database, does not run a worker, and returns the stored message record.",
+        ),
         {
-            "target_agent": {"type": "string", "description": "Recipient agent id"},
-            "message": {"type": "string", "description": "Message body"},
-            "source_agent": {"type": "string", "description": "Sender agent id (default: mcp)"},
-            "task_id": {"type": "string", "description": "Associated task id"},
+            "target_agent": {"type": "string", "description": "Recipient agent id that will receive the inbox message."},
+            "message": {"type": "string", "description": "Message body to persist in the target inbox."},
+            "source_agent": {"type": "string", "description": "Sender agent id recorded on the message; defaults to mcp."},
+            "task_id": {"type": "string", "description": "Optional associated task id for threading or audit context."},
         },
         ["target_agent", "message"],
+        STATEFUL_LOCAL_TOOL,
     ),
     _tool_def(
         "trinity_skill_search",
-        "Search agent-skill-system for relevant skills matching a task description.",
+        _desc(
+            "Search the optional agent-skill-system index for skills relevant to a task or keyword query.",
+            "Use this before loading a full skill when the exact skill name is unknown; use trinity_skill_load after selecting a result.",
+            "This is read-only and returns ranked skill metadata, or an installation hint if agent-skill-system is not installed.",
+        ),
         {
-            "query": {"type": "string", "description": "Task description or keyword query"},
-            "limit": {"type": "integer", "description": "Maximum results (default: 5, max: 20)"},
+            "query": {"type": "string", "description": "Task description or keywords used to rank matching skills."},
+            "limit": {"type": "integer", "description": "Maximum results to return; defaults to 5 and is capped at 20."},
         },
         ["query"],
+        READ_ONLY_TOOL,
     ),
     _tool_def(
         "trinity_skill_load",
-        "Load the full content (SKILL.md + memory) of a named skill.",
+        _desc(
+            "Load the full SKILL.md, memory, schema, keywords, and generated system prompt for one exact skill name.",
+            "Use this after trinity_skill_search identifies the correct skill; do not use it for broad discovery.",
+            "This is read-only and returns the skill bundle, or a not-found response with available skill names when possible.",
+        ),
         {
-            "skill_name": {"type": "string", "description": "Exact name of the skill to load"},
+            "skill_name": {"type": "string", "description": "Exact skill name to load from the local skill bank."},
         },
         ["skill_name"],
+        READ_ONLY_TOOL,
     ),
 ]
 

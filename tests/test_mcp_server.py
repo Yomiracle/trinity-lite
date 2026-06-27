@@ -107,10 +107,20 @@ class McpServerTest(unittest.TestCase):
         for t in tools:
             self.assertIn("name", t)
             self.assertIn("description", t)
+            self.assertGreaterEqual(len(t["description"].split()), 20)
+            self.assertIn("annotations", t)
+            self.assertIn("readOnlyHint", t["annotations"])
+            self.assertIn("destructiveHint", t["annotations"])
+            self.assertIn("idempotentHint", t["annotations"])
+            self.assertIn("openWorldHint", t["annotations"])
             self.assertIn("inputSchema", t)
             self.assertEqual(t["inputSchema"]["type"], "object")
             self.assertIn("properties", t["inputSchema"])
             self.assertIn("required", t["inputSchema"])
+        by_name = {t["name"]: t for t in tools}
+        self.assertTrue(by_name["trinity_status"]["annotations"]["readOnlyHint"])
+        self.assertFalse(by_name["trinity_dispatch"]["annotations"]["readOnlyHint"])
+        self.assertTrue(by_name["trinity_dispatch"]["annotations"]["openWorldHint"])
 
     # ---- resources/list ----
 
