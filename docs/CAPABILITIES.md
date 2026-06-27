@@ -19,9 +19,9 @@ Agents can declare roles, capabilities, and priority in `agents.local.json`:
 ```json
 {
   "agents": {
-    "qwen_cli": {
+    "implementation_cli": {
       "mode": "command",
-      "command": ["qwen", "run", "{prompt}"],
+      "command": ["my-implementation-cli", "--cwd", "{cwd}", "{prompt}"],
       "roles": ["primary_engineer"],
       "capabilities": ["code_edit", "test_run", "long_context"],
       "priority": 80,
@@ -33,7 +33,7 @@ Agents can declare roles, capabilities, and priority in `agents.local.json`:
 
 | Field | Meaning |
 |-------|---------|
-| `agent_id` | The JSON object key, such as `qwen_cli` |
+| `agent_id` | The JSON object key, such as `implementation_cli` |
 | `mode` | `mock` or `command` |
 | `command` | JSON-array command for command agents |
 | `roles` | Human workflow roles such as `primary_engineer` or `reviewer` |
@@ -101,7 +101,7 @@ trinity-lite dispatch-auto "fix the parser bug" \
 The selected worker still runs normally:
 
 ```bash
-trinity-lite worker qwen_cli --once --agents agents.local.json
+trinity-lite worker implementation_cli --once --agents agents.local.json
 ```
 
 The optional orchestrator uses the same capability routes for primary work and

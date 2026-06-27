@@ -1,16 +1,16 @@
 {
   "agents": {
-    "qwen_cli": {
+    "implementation_cli": {
       "mode": "command",
-      "command": ["qwen", "run", "{prompt}"],
+      "command": ["my-implementation-cli", "--cwd", "{cwd}", "{prompt}"],
       "roles": ["primary_engineer"],
       "capabilities": ["code_edit", "test_run", "long_context"],
       "priority": 80,
       "timeout": 1800
     },
-    "gemini_cli": {
+    "review_cli": {
       "mode": "command",
-      "command": ["gemini", "-p", "{prompt}"],
+      "command": ["my-review-cli", "{prompt}"],
       "roles": ["reviewer", "researcher"],
       "capabilities": ["code_review", "research", "long_context"],
       "priority": 70,

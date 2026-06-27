@@ -7,8 +7,8 @@ Accepted
 ## Context
 
 Trinity Lite started with Codex, Claude Code, and Hermes as default agent names.
-That is useful for the maintainer's own workflow, but public users may run Qwen,
-Gemini, Aider, OpenHands, local wrappers, or other CLI agents with different API
+That is useful for the maintainer's own workflow, but public users may run local
+wrappers, OpenHands-style tools, or other CLI agents with different API
 providers and model capabilities.
 
 The public project needs to route tasks without knowing or storing those API

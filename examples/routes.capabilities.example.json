@@ -37,8 +37,8 @@
     }
   },
   "opposites": {
-    "qwen_cli": "gemini_cli",
+    "implementation_cli": "review_cli",
     "aider": "custom_reviewer",
-    "gemini_cli": "qwen_cli"
+    "review_cli": "implementation_cli"
   }
 }

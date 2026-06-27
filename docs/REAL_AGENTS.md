@@ -1,8 +1,15 @@
 # Real Agent Command Setup
 
-Trinity Lite runs mock agents by default. That is intentional: anyone can test the bus without installing Codex, Claude Code, Hermes, Qwen, Gemini, Aider, or another agent CLI.
+Trinity Lite runs mock agents by default. That is intentional: anyone can test the bus without installing Codex, Claude Code, Hermes, or another agent CLI.
 
 When you are ready to run real tools, create a local command config that is not committed to git.
+
+Focused recipes:
+
+- [Codex](recipes/codex.md)
+- [Claude Code](recipes/claude-code.md)
+- [Hermes and private Trinity boundaries](recipes/hermes-private-trinity.md)
+- [Generic CLI agent](recipes/generic-cli.md)
 
 ## 1. Copy the Example
 
@@ -45,9 +52,9 @@ Agent metadata can also declare workflow roles, capabilities, and priority:
 ```json
 {
   "agents": {
-    "qwen_cli": {
+    "implementation_cli": {
       "mode": "command",
-      "command": ["qwen", "run", "{prompt}"],
+      "command": ["my-implementation-cli", "--cwd", "{cwd}", "{prompt}"],
       "roles": ["primary_engineer"],
       "capabilities": ["code_edit", "test_run", "long_context"],
       "priority": 80,
@@ -161,7 +168,7 @@ trinity-lite dispatch-auto "fix the parser bug" \
 Run the selected worker:
 
 ```bash
-trinity-lite worker qwen_cli --once --agents agents.local.json
+trinity-lite worker implementation_cli --once --agents agents.local.json
 ```
 
 Codex, Claude Code, and Hermes are presets, not requirements. If your agent uses
@@ -188,7 +195,7 @@ Supported placeholders:
 
 ## 中文说明
 
-默认 mock agent 是为了让任何人都能先跑通流程。接入真实 Codex、Claude Code、Qwen、Gemini、Aider 或自定义 CLI 时，只需要复制示例到本地的 `agents.local.json`，然后按自己的机器修改命令。
+默认 mock agent 是为了让任何人都能先跑通流程。接入真实 Codex、Claude Code、Hermes 或自定义 CLI 时，只需要复制示例到本地的 `agents.local.json`，然后按自己的机器修改命令。
 
 关键规则：
 

@@ -1,0 +1,21 @@
+site_name: Trinity Lite
+site_description: Local-first multi-agent orchestration for CLI AI agents.
+repo_url: https://github.com/Yomiracle/trinity-lite
+theme:
+  name: readthedocs
+nav:
+  - Home: index.md
+  - Why Trinity Lite: WHY_TRINITY_LITE.md
+  - Tutorial: TRINITY_LITE.md
+  - Real Agent Setup: REAL_AGENTS.md
+  - Recipes:
+      - Codex: recipes/codex.md
+      - Claude Code: recipes/claude-code.md
+      - Hermes and Private Trinity: recipes/hermes-private-trinity.md
+      - Generic CLI: recipes/generic-cli.md
+  - Capabilities: CAPABILITIES.md
+  - Architecture: ARCHITECTURE.md
+  - Operations: OPERATIONS.md
+  - Security: SECURITY.md
+  - MCP Server: MCP_SERVER_DESIGN.md
+  - Product Positioning: PRODUCT.md

@@ -7,7 +7,7 @@
 
 **Local-first multi-agent orchestration for CLI AI agents.**
 
-[中文 README](README_zh.md)
+[中文 README](README_zh.md) · [Docs](docs/index.md) · [Why Trinity Lite?](docs/WHY_TRINITY_LITE.md) · [Recipes](docs/recipes/generic-cli.md)
 
 ## The problem
 
@@ -190,6 +190,8 @@ Works with 1 model, 2 models, or 10 models. No agent names hardcoded.
 
 - [PyPI](https://pypi.org/project/trinity-lite/)
 - [Documentation](docs/)
+- [Why Trinity Lite?](docs/WHY_TRINITY_LITE.md)
+- [Recipes](docs/recipes/generic-cli.md)
 - [Changelog](CHANGELOG.md)
 - [Contributing](CONTRIBUTING.md)
 - [Architecture](docs/ARCHITECTURE.md)

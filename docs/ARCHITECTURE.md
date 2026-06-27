@@ -72,9 +72,9 @@ optional routing metadata:
 ```json
 {
   "agents": {
-    "qwen_cli": {
+    "implementation_cli": {
       "mode": "command",
-      "command": ["qwen", "run", "{prompt}"],
+      "command": ["my-implementation-cli", "--cwd", "{cwd}", "{prompt}"],
       "roles": ["primary_engineer"],
       "capabilities": ["code_edit", "test_run"],
       "priority": 80

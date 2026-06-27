@@ -65,7 +65,7 @@ For one-off tasks, the gain is small. For repeated implementation, review, and v
 Trinity Lite is different from many agent frameworks because it starts from the tools developers already use:
 
 ```text
-Codex / Claude Code / Hermes / Qwen / Gemini / Aider / custom CLI
+Codex / Claude Code / Hermes / custom CLI
         |
         v
 shared local bus
@@ -123,4 +123,4 @@ That staged design keeps the first version understandable while leaving a clear 
 
 Trinity Lite 是一个本地优先的多 Agent 工作流基础设施。它面向 AI 开发者、agent 工作流构建者、独立开发者、小团队和技术内容创作者，解决多个 CLI 型 AI 编程工具之间缺少任务路由、状态持久化、二审交接和可复现演示的问题。
 
-它的创新点不是重新发明一个 agent 框架，而是给 Codex、Claude Code、Hermes、Qwen、Gemini、Aider 或任意 CLI agent 加一个共享任务总线和能力路由层，让已有工具可以用工程化方式协作。
+它的创新点不是重新发明一个 agent 框架，而是给 Codex、Claude Code、Hermes 或任意自定义 CLI agent 加一个共享任务总线和能力路由层，让已有工具可以用工程化方式协作。
