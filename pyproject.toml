@@ -25,6 +25,7 @@ classifiers = [
 dependencies = []
 
 [project.optional-dependencies]
+yaml = ["PyYAML>=6.0"]
 mcp = ["mcp>=1.0"]
 agent-skill = ["agent-skill-system>=1.0.6"]
 

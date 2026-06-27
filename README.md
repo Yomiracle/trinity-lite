@@ -59,7 +59,7 @@ LangGraph and CrewAI give you primitives for building agents from scratch — gr
 - **Test with mock agents.** Mock agents simulate the full cycle without real CLIs. Prototype routing, persistence, and review handoffs first. Wire up real agents later.
 - **Guard against runaway delegation.** Self-delegation is blocked. Delegation depth is capped. Working directories are allowlisted. Safe by default.
 - **Check health in one pass.** `trinity-lite doctor` verifies Python, SQLite, route config, agent config, and publish readiness.
-- **Zero dependencies.** Runtime is Python standard library only. Nothing to install but Python 3.10+.
+- **Zero core dependencies.** The default runtime is Python standard library only. YAML pipelines are available through an optional extra.
 - **130+ tests guarding the surface area.** Mock workflows, safety checks, routing, persistence, MCP, and acceptance gates — all covered.
 - **Smart model selection.** Automatically picks the right LLM for each task. Simple CRUD → cheap model. Architecture design → strong reasoning model. Define your own model pool with tiers and strength tags.
 
@@ -69,13 +69,14 @@ LangGraph and CrewAI give you primitives for building agents from scratch — gr
 pip install trinity-lite
 ```
 
-Python 3.10+. Zero runtime dependencies. Standard library only.
+Python 3.10+. Zero core runtime dependencies. Standard library only unless an optional extra is installed.
 
 ### Optional extras
 
 ```bash
-pip install trinity-lite[mcp]           # MCP server — 12 tools + 3 resources
-pip install trinity-lite[agent-skill]   # agent-skill-system integration
+pip install "trinity-lite[yaml]"          # YAML pipeline files
+pip install "trinity-lite[mcp]"           # MCP server — 12 tools + 3 resources
+pip install "trinity-lite[agent-skill]"   # agent-skill-system integration
 ```
 
 ## Workflow example
