@@ -55,6 +55,7 @@ LangGraph and CrewAI give you primitives for building agents from scratch — gr
 - **Dispatch directly when you need control.** Bypass the router and send a task straight to `claude_code` or `codex`. Best of both worlds.
 - **Persist everything in SQLite.** Tasks, statuses, results, errors, and messages in one local file. Query it with `sqlite3` or any tool that speaks SQL.
 - **Accept with evidence, not vibes.** The review flow records route decisions, review links, verification results, acceptance reasons, and `accepted_at` in SQLite. A reviewed task is accepted only after the local verifier passes.
+- **Isolate agent code edits with git worktrees.** `trinity-lite worktree` creates managed branches and checkouts, records the base commit, and returns diff evidence without touching your main checkout.
 - **Run CLI workers on demand.** `trinity-lite worker codex --once` pulls one queued task, executes the agent's command, and writes the result. Run it in a loop, in cron, or by hand.
 - **Execute safely, no shell injection.** Agent commands are JSON arrays run with `shell=False`. No string interpolation into a shell. No surprises.
 - **Test with mock agents.** Mock agents simulate the full cycle without real CLIs. Prototype routing, persistence, and review handoffs first. Wire up real agents later.
@@ -104,6 +105,21 @@ trinity-lite dispatch-auto "implement a parser"
 trinity-lite worker codex --once
 trinity-lite tasks
 ```
+
+## Worktree Preview
+
+Create an isolated checkout for an agent:
+
+```bash
+trinity-lite worktree create "fix parser bug" --repo . --agent codex
+trinity-lite worktree list
+trinity-lite worktree diff <task_id>
+trinity-lite worktree cleanup <task_id>
+```
+
+Worktree preview records branch, base commit, path, agent id, task id, and diff
+evidence. It does not merge branches or delete branches by default. See
+[Worktree Parallelism Preview](docs/WORKTREE_PARALLELISM.md).
 
 ## MCP server
 

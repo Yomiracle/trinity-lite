@@ -15,6 +15,7 @@ from .orchestrator import run_review_flow
 from .pipeline import load_pipeline, run_pipeline
 from .router import resolve_route
 from .worker import _default_pid_path, run_loop, run_once
+from .worktree import cleanup_worktree, create_worktree, diff_worktree, list_managed_worktrees
 
 
 def print_json(data: Any) -> None:
@@ -35,7 +36,7 @@ Trinity Lite — multi-agent task bus
 Quick demo:  trinity-lite demo
 Full help:   trinity-lite --help
 
-Commands: demo, dispatch, dispatch-auto, worker, orchestrate,
+Commands: demo, dispatch, dispatch-auto, worker, orchestrate, worktree,
           status, tasks, route, doctor, send, inbox, mcp,
           setup-models, detect-models"""
 
@@ -96,6 +97,32 @@ def build_parser() -> argparse.ArgumentParser:
     worker.add_argument("--poll", type=float, default=2.0, help="poll interval in seconds (default: 2.0)")
     worker.add_argument("--daemon", action="store_true", help="run in continuous daemon mode with signal handling and PID locking")
     worker.add_argument("--pid-file", default=None, help="custom PID file path (default: ~/.trinity/workers/<agent>.pid)")
+
+    worktree = sub.add_parser("worktree", parents=[common], help="manage isolated git worktrees")
+    worktree_sub = worktree.add_subparsers(dest="worktree_command")
+    worktree_create = worktree_sub.add_parser("create", parents=[common], help="create a managed git worktree")
+    worktree_create.add_argument("task", help="task prompt or short description")
+    worktree_create.add_argument("--repo", default=os.getcwd(), help="git repository path (default: cwd)")
+    worktree_create.add_argument("--agent", default="agent", help="agent id for the worktree branch/path")
+    worktree_create.add_argument("--task-id", help="stable task id to use instead of generating one")
+    worktree_create.add_argument("--base", default="HEAD", help="base ref for the worktree branch (default: HEAD)")
+    worktree_create.add_argument("--worktree-root", help="managed worktree root (default: ~/.trinity-lite/worktrees)")
+
+    worktree_list = worktree_sub.add_parser("list", parents=[common], help="list managed git worktrees")
+    worktree_list.add_argument("--repo", help="filter by git repository path")
+    worktree_list.add_argument("--worktree-root", help="managed worktree root (default: ~/.trinity-lite/worktrees)")
+
+    worktree_diff = worktree_sub.add_parser("diff", parents=[common], help="show diff evidence for a managed worktree")
+    worktree_diff.add_argument("ref", help="task id, metadata stem, or worktree path")
+    worktree_diff.add_argument("--base", help="override the recorded base commit/ref")
+    worktree_diff.add_argument("--stat-only", action="store_true", help="omit the full patch from output")
+    worktree_diff.add_argument("--worktree-root", help="managed worktree root (default: ~/.trinity-lite/worktrees)")
+
+    worktree_cleanup = worktree_sub.add_parser("cleanup", parents=[common], help="remove a managed git worktree")
+    worktree_cleanup.add_argument("ref", help="task id, metadata stem, or worktree path")
+    worktree_cleanup.add_argument("--force", action="store_true", help="force git worktree removal")
+    worktree_cleanup.add_argument("--delete-branch", action="store_true", help="also delete the managed branch")
+    worktree_cleanup.add_argument("--worktree-root", help="managed worktree root (default: ~/.trinity-lite/worktrees)")
 
     send = sub.add_parser("send", parents=[common], help="send a durable message")
     send.add_argument("target_agent")
@@ -167,11 +194,30 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def run_command(args: argparse.Namespace) -> int:
-    bus = TrinityBus(args.db)
-
     if args.command == "version":
         print(f"trinity-lite {_version()}")
         return 0
+
+    if args.command == "worktree":
+        return _worktree(args)
+
+    # Model pool commands do not use the task bus.
+    if args.command == "setup-models":
+        from .model_pool_wizard import main as wizard_main
+        wizard_main()
+        return 0
+    if args.command == "detect-models":
+        from .model_autodetect import scan, save_pool
+        pool = scan()
+        print(f"Detected {len(pool)} backend(s):")
+        for name, info in pool.items():
+            print(f"  • {name} ({info['tier']}) — {', '.join(info['strengths'][:3])}")
+        if not getattr(args, "no_save", False):
+            path = save_pool(pool)
+            print(f"Saved to {path}")
+        return 0
+
+    bus = TrinityBus(args.db)
 
     if args.command == "route":
         print_json(resolve_route(args.task, args.task_type, args.previous_agent, args.routes, args.agents))
@@ -270,23 +316,47 @@ def run_command(args: argparse.Namespace) -> int:
     if args.command == "mcp":
         return _mcp(args, bus)
 
-    # Model pool commands (no bus needed)
-    if args.command == "setup-models":
-        from .model_pool_wizard import main as wizard_main
-        wizard_main()
-        return 0
-    if args.command == "detect-models":
-        from .model_autodetect import scan, save_pool
-        pool = scan()
-        print(f"Detected {len(pool)} backend(s):")
-        for name, info in pool.items():
-            print(f"  • {name} ({info['tier']}) — {', '.join(info['strengths'][:3])}")
-        if not getattr(args, "no_save", False):
-            path = save_pool(pool)
-            print(f"Saved to {path}")
-        return 0
-
     raise AssertionError(f"unhandled command: {args.command}")
+
+
+def _worktree(args: argparse.Namespace) -> int:
+    """Handle 'trinity-lite worktree' subcommands."""
+    if args.worktree_command == "create":
+        print_json(create_worktree(
+            args.task,
+            repo_path=args.repo,
+            agent_id=args.agent,
+            task_id=args.task_id,
+            base_ref=args.base,
+            worktree_root=args.worktree_root,
+        ))
+        return 0
+    if args.worktree_command == "list":
+        print_json(list_managed_worktrees(
+            worktree_root=args.worktree_root,
+            repo_path=args.repo,
+        ))
+        return 0
+    if args.worktree_command == "diff":
+        print_json(diff_worktree(
+            args.ref,
+            worktree_root=args.worktree_root,
+            base_ref=args.base,
+            stat_only=args.stat_only,
+        ))
+        return 0
+    if args.worktree_command == "cleanup":
+        print_json(cleanup_worktree(
+            args.ref,
+            worktree_root=args.worktree_root,
+            force=args.force,
+            delete_branch=args.delete_branch,
+        ))
+        return 0
+    print("usage: trinity-lite worktree {create,list,diff,cleanup} ...")
+    return 2
+
+
 def _wait_for_task(
     bus: TrinityBus,
     task_id: str,

@@ -11,6 +11,7 @@ Trinity Lite is intentionally small. It is not a model gateway and not a full ag
 | `trinity_lite.adapters` | mock and command-based agent adapters plus agent metadata |
 | `trinity_lite.worker` | pulls queued tasks and executes an adapter |
 | `trinity_lite.orchestrator` | optional primary task plus review flow |
+| `trinity_lite.worktree` | managed git worktree lifecycle and diff evidence |
 | `trinity_lite.cli` | command line interface |
 | `trinity_lite.guard` | path and secret-scan safety helpers |
 | `trinity_lite.doctor` | environment, publish-readiness, and optional runtime hygiene checks |
@@ -108,6 +109,18 @@ They can also select by capability:
 The router does not inspect model providers, keys, or API endpoints. Those
 details belong to the CLI agent or local wrapper. Trinity Lite only chooses a
 configured worker and records the result.
+
+## Worktree Boundary
+
+`trinity-lite worktree` manages isolated git worktrees for agent work. The
+preview command creates branches named `trinity/<task_id>/<agent_id>`, records
+their base commit, lists managed worktrees, returns diff evidence, and removes
+worktrees during cleanup.
+
+This layer is intentionally separate from `orchestrate` for now. It does not
+merge branches, delete branches by default, create pull requests, or run agents
+automatically. Those behaviors need explicit review and acceptance integration
+before they become part of the default flow.
 
 ## Non-Goals
 

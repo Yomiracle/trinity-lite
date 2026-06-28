@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Added `trinity-lite worktree create/list/diff/cleanup` as a preview for
+  isolated git worktree lifecycle management.
+- Added `trinity_lite.worktree` with metadata stored outside agent checkouts and
+  diff evidence based on the recorded base commit.
+- Added worktree preview documentation and tests.
+
 ## v0.5.2 - 2026-06-27
 
 ### Fixed

@@ -22,6 +22,11 @@ def default_db_path() -> Path:
     return Path(raw).expanduser() if raw else app_dir() / "trinity_lite.db"
 
 
+def default_worktree_root() -> Path:
+    """Return the default directory for managed git worktrees."""
+    return app_dir() / "worktrees"
+
+
 def default_allowed_roots() -> list[Path]:
     """Return workspace roots allowed for task execution."""
     raw = os.environ.get("TRINITY_LITE_ALLOWED_ROOTS")

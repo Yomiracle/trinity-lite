@@ -56,6 +56,17 @@ class CliTest(unittest.TestCase):
             self.assertIn('"runtime_metrics"', output.getvalue())
             self.assertIn('"retired_port:70000"', output.getvalue())
 
+    def test_worktree_without_subcommand_shows_usage(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            db = root / "bus.db"
+            output = io.StringIO()
+            with redirect_stdout(output):
+                code = main(["worktree", "--db", str(db)])
+            self.assertEqual(code, 2)
+            self.assertIn("trinity-lite worktree", output.getvalue())
+            self.assertFalse(db.exists())
+
     def test_dispatch_wait_blocks_until_complete(self):
         with tempfile.TemporaryDirectory(dir=str(Path.home())) as tmp:
             root = Path(tmp)

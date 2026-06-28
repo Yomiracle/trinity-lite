@@ -35,6 +35,7 @@ python3 -m unittest discover -s tests -v
 - [Tutorial](TRINITY_LITE.md)
 - [Real Agent Setup](REAL_AGENTS.md)
 - [Agent Capabilities](CAPABILITIES.md)
+- [Worktree Parallelism Preview](WORKTREE_PARALLELISM.md)
 - [Architecture](ARCHITECTURE.md)
 - [Operations](OPERATIONS.md)
 - [Security](SECURITY.md)

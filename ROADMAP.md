@@ -25,6 +25,27 @@ Trinity Lite is intentionally small. The public project should stay easy to inst
 - Document Codex and Claude Code client setup.
 - Document generic CLI agent setup as the default mental model.
 
+## v0.6: Worktree Parallelism Preview
+
+- Add managed git worktree lifecycle commands:
+  - `trinity-lite worktree create`
+  - `trinity-lite worktree list`
+  - `trinity-lite worktree diff`
+  - `trinity-lite worktree cleanup`
+- Store worktree metadata outside agent checkouts.
+- Record base commit, branch, worktree path, agent id, and task id.
+- Keep automatic merge, conflict resolution, and branch deletion out of the
+  preview.
+- Prepare for a later `orchestrate --worktree` mode.
+
+## v0.7: Connectors Preview
+
+- Add a small JSON command-based connector spec.
+- Start with safe local connectors such as `github`, `pypi`, and `filesystem`.
+- Add `connectors list`, `connectors doctor`, and `connectors run`.
+- Keep arbitrary Python plugin imports out of the public core until the security
+  model is explicit.
+
 ## v1.0: Stable Local Agent Bus
 
 - Freeze the CLI command shape.

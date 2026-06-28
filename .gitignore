@@ -9,6 +9,7 @@ build/
 
 # Runtime state
 .trinity-lite/
+.trinity/
 *.db
 *.db-shm
 *.db-wal
