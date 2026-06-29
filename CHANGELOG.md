@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.6.0 - 2026-06-29
 
 ### Added
 
@@ -9,6 +9,15 @@
 - Added `trinity_lite.worktree` with metadata stored outside agent checkouts and
   diff evidence based on the recorded base commit.
 - Added worktree preview documentation and tests.
+
+### Fixed
+
+- Removed empty managed worktree root directories after cleanup.
+
+### Changed
+
+- Ignored local `marketing/` drafts so release checks stay focused on source,
+  package, and documentation files.
 
 ## v0.5.2 - 2026-06-27
 

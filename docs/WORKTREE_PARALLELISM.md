@@ -1,5 +1,8 @@
 # Worktree Parallelism Preview
 
+This is a v0.6 preview. It manages isolated worktree lifecycle and diff evidence
+while keeping automatic merge-back out of scope.
+
 Trinity Lite can create managed git worktrees for agent work. This is the first
 step toward parallel agent execution: each agent gets an isolated checkout, and
 Trinity records the worktree path, branch, base commit, and diff evidence.

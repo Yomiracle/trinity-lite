@@ -205,6 +205,8 @@ def cleanup_worktree(
         metadata_path.unlink()
         metadata_removed = True
     _git(["worktree", "prune"], cwd=repo, allow_empty=True)
+    _remove_empty_child_dirs(root, worktree_path.parent)
+    _remove_empty_child_dirs(root, metadata_path.parent)
     return {
         "task_id": meta.get("task_id"),
         "agent_id": meta.get("agent_id"),
@@ -285,6 +287,17 @@ def _index_dir(root: Path) -> Path:
 
 def _resolve_worktree_root(path: str | Path | None) -> Path:
     return (Path(path).expanduser() if path else default_worktree_root()).resolve()
+
+
+def _remove_empty_child_dirs(root: Path, path: Path) -> None:
+    root = root.resolve()
+    current = path.resolve()
+    while current != root and root in current.parents:
+        try:
+            current.rmdir()
+        except OSError:
+            break
+        current = current.parent
 
 
 def _repo_key(repo: Path) -> str:

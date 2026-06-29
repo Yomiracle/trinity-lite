@@ -20,3 +20,6 @@ build/
 # Local/private config
 agents.local.json
 routes.local.json
+
+# Local marketing drafts
+marketing/

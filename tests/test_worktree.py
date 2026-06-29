@@ -86,7 +86,9 @@ class WorktreeTest(unittest.TestCase):
         self.assertTrue(cleaned["removed"])
         self.assertTrue(cleaned["metadata_removed"])
         self.assertFalse(worktree_path.exists())
+        self.assertFalse(worktree_path.parent.exists())
         self.assertEqual(list_managed_worktrees(self.worktree_root), [])
+        self.assertEqual(list(self.worktree_root.iterdir()), [])
 
     def test_duplicate_task_id_is_rejected(self):
         create_worktree(
