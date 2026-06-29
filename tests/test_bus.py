@@ -149,6 +149,23 @@ class BusTest(unittest.TestCase):
         with self.assertRaises(TimeoutError):
             self.bus.await_task(task["id"], timeout=0.1)
 
+    def test_latest_source_task_defaults_to_primary_task(self):
+        parent = self.bus.submit_task("user", "codex", "primary", cwd=self.root)
+        review = self.bus.submit_task(
+            "user",
+            "claude_code",
+            "review",
+            cwd=self.root,
+            parent_task_id=parent["id"],
+        )
+
+        self.assertEqual(self.bus.latest_source_task("user")["id"], parent["id"])
+        self.assertEqual(
+            self.bus.latest_source_task("user", include_reviews=True)["id"],
+            review["id"],
+        )
+        self.assertIsNone(self.bus.latest_source_task("missing-agent"))
+
     def test_message_round_trip(self):
         msg = self.bus.send_message("codex", "claude_code", "please review")
         self.assertEqual(msg["read"], 0)

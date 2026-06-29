@@ -188,6 +188,26 @@ class TrinityBus:
             rows = conn.execute(sql, params).fetchall()
         return [dict(r) for r in rows]
 
+    def latest_source_task(
+        self,
+        agent: str,
+        include_reviews: bool = False,
+    ) -> dict[str, Any] | None:
+        """Return the newest task submitted by an agent.
+
+        Review tasks also use the original source agent. By default, skip those
+        children so recovery after an interrupted dispatch returns the primary
+        user-facing task.
+        """
+        sql = "SELECT * FROM tasks WHERE source_agent = ?"
+        params: list[Any] = [agent]
+        if not include_reviews:
+            sql += " AND parent_task_id IS NULL"
+        sql += " ORDER BY created_at DESC LIMIT 1"
+        with self.connect() as conn:
+            row = conn.execute(sql, params).fetchone()
+        return dict(row) if row else None
+
     def task_for_worker(self, target_agent: str, task_id: str | None = None) -> dict[str, Any] | None:
         now = utc_now_iso()
         with self.connect() as conn:

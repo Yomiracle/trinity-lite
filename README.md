@@ -77,7 +77,7 @@ Python 3.10+. Zero core runtime dependencies. Standard library only unless an op
 
 ```bash
 pip install "trinity-lite[yaml]"          # YAML pipeline files
-pip install "trinity-lite[mcp]"           # MCP server — 12 tools + 3 resources
+pip install "trinity-lite[mcp]"           # MCP server — 13 tools + 3 resources
 pip install "trinity-lite[agent-skill]"   # agent-skill-system integration
 ```
 
@@ -133,7 +133,7 @@ pip install trinity-lite[mcp]
 trinity-lite mcp serve
 ```
 
-**12 tools:**
+**13 tools:**
 
 | Tool | What it does |
 |------|--------------|
@@ -141,6 +141,7 @@ trinity-lite mcp serve
 | `trinity_dispatch_auto` | Dispatch and let the capability router pick the agent |
 | `trinity_orchestrate` | Run the default review flow or a YAML pipeline |
 | `trinity_status` | Get the state and result of any task by ID |
+| `trinity_latest` | Recover the latest task submitted by an agent |
 | `trinity_tasks` | List recent tasks, filterable by agent |
 | `trinity_worker` | Run one worker cycle for an agent |
 | `trinity_worker_daemon` | Start, stop, or inspect a daemon worker |
@@ -151,6 +152,11 @@ trinity-lite mcp serve
 | `trinity_skill_load` | Load the full content of a named skill |
 
 **3 resources:** `trinity://health`, `trinity://tasks/recent`, `trinity://tasks/{task_id}`
+
+If an MCP client disconnects or times out before it displays the task id, call
+`trinity_latest` for the source agent, then call `trinity_status` with the
+returned primary task id. By default `trinity_latest` skips secondary review
+children so recovery lands on the user-facing task.
 
 ## Acceptance Evidence
 

@@ -128,7 +128,24 @@ Get the current state and result of a task.
 
 **Return value:** Full task object from the bus.
 
-### 2.4 `trinity_tasks`
+### 2.4 `trinity_latest`
+
+Recover the newest task submitted by one source agent when the task id is
+unknown, such as after an interrupted MCP wait or client disconnect.
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `agent` | string | yes | -- | Source agent whose submitted task should be recovered |
+| `include_reviews` | boolean | no | `false` | Include secondary review child tasks |
+
+By default this skips rows with `parent_task_id` so recovery returns the primary
+user-facing task instead of a newer review child. After recovery, call
+`trinity_status` with the returned task id for the full current state.
+
+**Return value:** Compact task object or `null` when no task exists for the
+source agent.
+
+### 2.5 `trinity_tasks`
 
 List recent tasks, optionally filtered by agent.
 
@@ -139,7 +156,7 @@ List recent tasks, optionally filtered by agent.
 
 **Return value:** Array of compact task objects, most recent first.
 
-### 2.5 `trinity_worker` (NEW)
+### 2.6 `trinity_worker` (NEW)
 
 Run one worker cycle for a named agent. This is the key innovation for MCP
 sessions: the agent can dispatch a task and then execute it immediately within
@@ -166,7 +183,7 @@ Lite, `trinity_worker` lets agents close the dispatch->execute->inspect loop
 entirely within one MCP session. This is especially important for agents that
 do not control their own subprocess lifecycle.
 
-### 2.6 `trinity_doctor` (NEW)
+### 2.7 `trinity_doctor` (NEW)
 
 Run health and diagnostic checks. Replaces the internal `trinity_agents` tool
 with a broader, release-safe health check.
@@ -195,7 +212,7 @@ a controlled environment but a potential information leak in a public tool.
 `trinity_doctor` provides equivalent operational insight through a structured
 health contract that is both more useful and safer to expose.
 
-### 2.7 `trinity_inbox`
+### 2.8 `trinity_inbox`
 
 Read durable messages addressed to an agent.
 
@@ -211,7 +228,7 @@ enumeration of arbitrary inboxes.
 
 **Return value:** Array of message objects.
 
-### 2.8 `trinity_send`
+### 2.9 `trinity_send`
 
 Send a durable message to another agent.
 
@@ -321,7 +338,8 @@ All tool parameters are validated on entry:
 - New module: `trinity_lite/mcp_server.py` (approx 300-400 lines)
 - New CLI subcommand: `trinity-lite mcp serve`
 - JSON-RPC 2.0 over stdio with stdlib only
-- Three core tools: `trinity_dispatch`, `trinity_dispatch_auto`, `trinity_status`
+- Core tools: `trinity_dispatch`, `trinity_dispatch_auto`, `trinity_status`,
+  `trinity_latest`
 - Three resources: `trinity://tasks/{task_id}`, `trinity://tasks/recent`, `trinity://health`
 - MCP lifecycle: `initialize` -> `initialized` -> serve -> `shutdown`
 - All security layers active
@@ -340,7 +358,7 @@ echo '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"trinity_di
 
 **Scope:**
 
-- Remaining five tools: `trinity_tasks`, `trinity_worker`, `trinity_doctor`,
+- Remaining tools: `trinity_tasks`, `trinity_worker`, `trinity_doctor`,
   `trinity_inbox`, `trinity_send`
 - Optional `mcp` extra in `pyproject.toml`
 - When `mcp` PyPI package is installed, server delegates transport to it
@@ -392,8 +410,9 @@ echo '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"trinity_di
 ```
 
 After configuration, Claude Code will show `trinity_dispatch`,
-`trinity_dispatch_auto`, `trinity_status`, `trinity_tasks`, `trinity_worker`,
-`trinity_doctor`, `trinity_inbox`, and `trinity_send` in its tool list.
+`trinity_dispatch_auto`, `trinity_status`, `trinity_latest`, `trinity_tasks`,
+`trinity_worker`, `trinity_doctor`, `trinity_inbox`, and `trinity_send` in its
+tool list.
 
 ### 6.2 Codex MCP Config
 
@@ -488,7 +507,7 @@ differs in key areas.
 | Aspect | Shared Design |
 |--------|---------------|
 | **STDIO transport** | JSON-RPC 2.0 over stdin/stdout |
-| **Core bus operations** | `submit_task`, `get_task`, `list_tasks`, `send_message`, `inbox`, `await_task` |
+| **Core bus operations** | `submit_task`, `get_task`, `latest_source_task`, `list_tasks`, `send_message`, `inbox`, `await_task` |
 | **Self-delegation prevention** | Check `target_agent == source` before dispatch |
 | **Compact task representation** | Same subset of fields in tool responses |
 | **`wait` semantics** | Block until terminal status or timeout |

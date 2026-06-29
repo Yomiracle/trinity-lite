@@ -177,6 +177,59 @@ class CliTest(unittest.TestCase):
             self.assertEqual(code, 0)
             self.assertIn('"target_agent": "qwen_cli"', output.getvalue())
 
+    def test_latest_returns_primary_task_by_default(self):
+        with tempfile.TemporaryDirectory(dir=str(Path.home())) as tmp:
+            root = Path(tmp)
+            db = root / "bus.db"
+            output = io.StringIO()
+            with redirect_stdout(output):
+                code = main([
+                    "dispatch",
+                    "codex",
+                    "primary",
+                    "--source",
+                    "hermes",
+                    "--db",
+                    str(db),
+                    "--cwd",
+                    str(root),
+                ])
+            self.assertEqual(code, 0)
+            parent = json.loads(output.getvalue())
+
+            output = io.StringIO()
+            with redirect_stdout(output):
+                code = main([
+                    "dispatch",
+                    "claude_code",
+                    "review",
+                    "--source",
+                    "hermes",
+                    "--db",
+                    str(db),
+                    "--cwd",
+                    str(root),
+                ])
+            self.assertEqual(code, 0)
+            review = json.loads(output.getvalue())
+            from trinity_lite.bus import TrinityBus
+            TrinityBus(db, allowed_roots=[root]).update_task_evidence(
+                review["id"],
+                parent_task_id=parent["id"],
+            )
+
+            output = io.StringIO()
+            with redirect_stdout(output):
+                code = main(["latest", "hermes", "--db", str(db)])
+            self.assertEqual(code, 0)
+            self.assertEqual(json.loads(output.getvalue())["id"], parent["id"])
+
+            output = io.StringIO()
+            with redirect_stdout(output):
+                code = main(["latest", "hermes", "--db", str(db), "--include-reviews"])
+            self.assertEqual(code, 0)
+            self.assertEqual(json.loads(output.getvalue())["id"], review["id"])
+
     def test_orchestrate_uses_capability_routes_and_agents(self):
         with tempfile.TemporaryDirectory(dir=str(Path.home())) as tmp:
             root = Path(tmp)

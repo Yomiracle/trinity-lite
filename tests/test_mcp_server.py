@@ -91,11 +91,12 @@ class McpServerTest(unittest.TestCase):
         resp = self._call(self._msg("tools/list", 1))
         tools = resp["result"]["tools"]
         self.assertIsInstance(tools, list)
-        self.assertEqual(len(tools), 12)
+        self.assertEqual(len(tools), 13)
         names = [t["name"] for t in tools]
         self.assertIn("trinity_dispatch", names)
         self.assertIn("trinity_dispatch_auto", names)
         self.assertIn("trinity_status", names)
+        self.assertIn("trinity_latest", names)
         self.assertIn("trinity_tasks", names)
         self.assertIn("trinity_worker", names)
         self.assertIn("trinity_doctor", names)
@@ -144,7 +145,7 @@ class McpServerTest(unittest.TestCase):
         data = json.loads(contents[0]["text"])
         self.assertEqual(data["status"], "ok")
         self.assertEqual(data["bus"], "connected")
-        self.assertEqual(data["tools"], 12)
+        self.assertEqual(data["tools"], 13)
         self.assertEqual(data["resources"], 3)
 
     def test_resource_health_degraded(self):
@@ -299,6 +300,37 @@ class McpServerTest(unittest.TestCase):
         tasks = resp["result"]
         self.assertEqual(len(tasks), 1)
         self.assertEqual(tasks[0]["target_agent"], "codex")
+
+    # ---- tools/call: trinity_latest ----
+
+    def test_trinity_latest_recovers_primary_task_by_default(self):
+        parent = self.bus.submit_task("mcp", "codex", "primary", cwd=self.root)
+        review = self.bus.submit_task(
+            "mcp",
+            "claude_code",
+            "review",
+            cwd=self.root,
+            parent_task_id=parent["id"],
+        )
+
+        params = {"name": "trinity_latest", "arguments": {"agent": "mcp"}}
+        resp = self._call(self._msg("tools/call", 1, params))
+        self.assertIn("result", resp)
+        self.assertEqual(resp["result"]["id"], parent["id"])
+
+        params = {
+            "name": "trinity_latest",
+            "arguments": {"agent": "mcp", "include_reviews": True},
+        }
+        resp = self._call(self._msg("tools/call", 1, params))
+        self.assertIn("result", resp)
+        self.assertEqual(resp["result"]["id"], review["id"])
+
+    def test_trinity_latest_returns_null_when_no_task(self):
+        params = {"name": "trinity_latest", "arguments": {"agent": "mcp"}}
+        resp = self._call(self._msg("tools/call", 1, params))
+        self.assertIn("result", resp)
+        self.assertIsNone(resp["result"])
 
     # ---- tools/call: trinity_worker ----
 

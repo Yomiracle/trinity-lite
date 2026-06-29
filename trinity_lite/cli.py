@@ -37,7 +37,7 @@ Quick demo:  trinity-lite demo
 Full help:   trinity-lite --help
 
 Commands: demo, dispatch, dispatch-auto, worker, orchestrate, worktree,
-          status, tasks, route, doctor, send, inbox, mcp,
+          status, latest, tasks, route, doctor, send, inbox, mcp,
           setup-models, detect-models"""
 
 
@@ -90,6 +90,10 @@ def build_parser() -> argparse.ArgumentParser:
     tasks = sub.add_parser("tasks", parents=[common], help="list recent tasks")
     tasks.add_argument("--agent")
     tasks.add_argument("--limit", type=int, default=20)
+
+    latest = sub.add_parser("latest", parents=[common], help="show latest task submitted by one source agent")
+    latest.add_argument("agent")
+    latest.add_argument("--include-reviews", action="store_true", help="include review child tasks in the lookup")
 
     worker = sub.add_parser("worker", parents=[common], help="run a worker for one agent")
     worker.add_argument("agent")
@@ -285,6 +289,9 @@ def run_command(args: argparse.Namespace) -> int:
         return 0
     if args.command == "tasks":
         print_json(bus.list_tasks(args.agent, args.limit))
+        return 0
+    if args.command == "latest":
+        print_json(bus.latest_source_task(args.agent, args.include_reviews))
         return 0
     if args.command == "worker":
         if args.once:

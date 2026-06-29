@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Added `trinity-lite latest` and the `trinity_latest` MCP tool to recover the
+  latest primary task submitted by a source agent when a client loses the task
+  id before displaying the result.
+
 ## v0.6.0 - 2026-06-29
 
 ### Added

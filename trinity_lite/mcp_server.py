@@ -192,6 +192,20 @@ TOOL_DEFINITIONS = [
         READ_ONLY_TOOL,
     ),
     _tool_def(
+        "trinity_latest",
+        _desc(
+            "Recover the newest task submitted by one source agent when the task id is unknown.",
+            "Use this after an interrupted MCP wait or lost client response, then call trinity_status for the returned primary task id.",
+            "By default it skips secondary review children so the returned task is the user-facing parent; set include_reviews=true to inspect review tasks.",
+        ),
+        {
+            "agent": {"type": "string", "description": "Source agent id whose latest submitted task should be returned."},
+            "include_reviews": {"type": "boolean", "description": "When true, include secondary review child tasks; defaults to false."},
+        },
+        ["agent"],
+        READ_ONLY_TOOL,
+    ),
+    _tool_def(
         "trinity_tasks",
         _desc(
             "List recent durable task records, optionally filtered by source or target agent.",
@@ -584,6 +598,19 @@ def _handle_trinity_tasks(params, bus, agents_path, routes_path):
     return jsonrpc_response(1, [_compact_task(t) for t in tasks])
 
 
+def _handle_trinity_latest(params, bus, agents_path, routes_path):
+    agent = _validate_text(params["agent"], 128)
+    include_reviews = params.get("include_reviews", False)
+    if not isinstance(include_reviews, bool):
+        raise ValueError("include_reviews must be a boolean")
+
+    known = _get_known_agents(bus, agents_path)
+    _validate_agent_id(agent, known)
+
+    task = bus.latest_source_task(agent, include_reviews=include_reviews)
+    return jsonrpc_response(1, _compact_task(task) if task else None)
+
+
 def _handle_trinity_worker(params, bus, agents_path, routes_path):
     agent = _validate_text(params["agent"], 128)
     task_id = params.get("task_id") or None
@@ -877,6 +904,7 @@ TOOL_HANDLERS = {
     "trinity_dispatch": _handle_trinity_dispatch,
     "trinity_dispatch_auto": _handle_trinity_dispatch_auto,
     "trinity_status": _handle_trinity_status,
+    "trinity_latest": _handle_trinity_latest,
     "trinity_tasks": _handle_trinity_tasks,
     "trinity_worker": _handle_trinity_worker,
     "trinity_worker_daemon": _handle_trinity_worker_daemon,
