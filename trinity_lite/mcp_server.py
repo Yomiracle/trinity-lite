@@ -404,6 +404,22 @@ def _compact_task(task):
     return {k: task[k] for k in keys if k in task}
 
 
+def _self_route_result(source, route, task, cwd="", task_type=None):
+    return {
+        "ok": True,
+        "status": "self_route",
+        "source_agent": source,
+        "target_agent": source,
+        "task": task,
+        "cwd": cwd,
+        "task_type": route.get("task_type") or task_type,
+        "route": route,
+        "dispatched": False,
+        "task_id": None,
+        "recommended_action": "execute locally in the current agent, or dispatch explicitly to a different agent for review",
+    }
+
+
 # ---------------------------------------------------------------------------
 # Input validation
 # ---------------------------------------------------------------------------
@@ -500,10 +516,7 @@ def _handle_trinity_dispatch(params, bus, agents_path, routes_path):
 
     # Layer 2: self-delegation check
     if source == target:
-        return jsonrpc_error(
-            1, -32000, "self-delegation is not allowed",
-            {"source_agent": source, "target_agent": target},
-        )
+        return jsonrpc_response(1, _self_route_result(source, {"agent": source}, prompt, cwd, task_type))
 
     task = bus.submit_task(
         source_agent=source,
@@ -547,10 +560,7 @@ def _handle_trinity_dispatch_auto(params, bus, agents_path, routes_path):
 
     # Layer 3: route-result check
     if source == target:
-        return jsonrpc_error(
-            1, -32000, "self-delegation is not allowed (routing resolved to source agent)",
-            {"source_agent": source, "resolved_agent": target, "route": route},
-        )
+        return jsonrpc_response(1, _self_route_result(source, route, prompt, cwd, task_type))
 
     task = bus.submit_task(
         source_agent=source,

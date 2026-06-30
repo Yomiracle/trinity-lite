@@ -222,7 +222,7 @@ class McpServerTest(unittest.TestCase):
         self.assertEqual(result["status"], "completed")
         self.assertIn("[mock:codex]", result.get("result", ""))
 
-    def test_trinity_dispatch_self_delegation_blocked(self):
+    def test_trinity_dispatch_self_delegation_returns_self_route(self):
         params = {
             "name": "trinity_dispatch",
             "arguments": {
@@ -232,8 +232,11 @@ class McpServerTest(unittest.TestCase):
             },
         }
         resp = self._call(self._msg("tools/call", 1, params))
-        self.assertIn("error", resp)
-        self.assertEqual(resp["error"]["code"], -32000)
+        self.assertIn("result", resp)
+        result = resp["result"]
+        self.assertEqual(result["status"], "self_route")
+        self.assertFalse(result["dispatched"])
+        self.assertIsNone(result["task_id"])
 
     def test_trinity_dispatch_unknown_agent(self):
         params = {
@@ -257,6 +260,22 @@ class McpServerTest(unittest.TestCase):
         self.assertIn("error", resp)
         self.assertEqual(resp["error"]["code"], -32602)
 
+    def test_trinity_dispatch_self_route_returns_result(self):
+        params = {
+            "name": "trinity_dispatch",
+            "arguments": {
+                "target_agent": "mcp",
+                "source_agent": "mcp",
+                "task": "local work",
+            },
+        }
+        resp = self._call(self._msg("tools/call", 1, params))
+        self.assertIn("result", resp)
+        result = resp["result"]
+        self.assertEqual(result["status"], "self_route")
+        self.assertFalse(result["dispatched"])
+        self.assertIsNone(result["task_id"])
+
     # ---- tools/call: trinity_dispatch_auto ----
 
     def test_trinity_dispatch_auto_routes_and_runs(self):
@@ -276,6 +295,25 @@ class McpServerTest(unittest.TestCase):
         self.assertEqual(result["status"], "completed")
         self.assertIn("route_json", result)
         self.assertIsNotNone(result["route_json"])
+
+    def test_trinity_dispatch_auto_self_route_returns_result(self):
+        params = {
+            "name": "trinity_dispatch_auto",
+            "arguments": {
+                "task": "implement a parser function",
+                "source_agent": "codex",
+                "cwd": str(self.root),
+            },
+        }
+        resp = self._call(self._msg("tools/call", 1, params))
+        self.assertIn("result", resp)
+        result = resp["result"]
+        self.assertEqual(result["status"], "self_route")
+        self.assertEqual(result["source_agent"], "codex")
+        self.assertEqual(result["target_agent"], "codex")
+        self.assertFalse(result["dispatched"])
+        self.assertIsNone(result["task_id"])
+        self.assertEqual(result["route"]["agent"], "codex")
 
     # ---- tools/call: trinity_tasks ----
 

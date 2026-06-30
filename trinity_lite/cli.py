@@ -22,6 +22,22 @@ def print_json(data: Any) -> None:
     print(json.dumps(data, ensure_ascii=False, indent=2))
 
 
+def self_route_result(source: str, route: dict[str, Any], prompt: str, cwd: str = "", task_type: str | None = None) -> dict[str, Any]:
+    return {
+        "ok": True,
+        "status": "self_route",
+        "source_agent": source,
+        "target_agent": source,
+        "task": prompt,
+        "cwd": cwd,
+        "task_type": route.get("task_type") or task_type,
+        "route": route,
+        "dispatched": False,
+        "task_id": None,
+        "recommended_action": "execute locally in the current agent, or dispatch explicitly to a different agent for review",
+    }
+
+
 def _version() -> str:
     """Return the package source version."""
     from . import __version__
@@ -227,6 +243,9 @@ def run_command(args: argparse.Namespace) -> int:
         print_json(resolve_route(args.task, args.task_type, args.previous_agent, args.routes, args.agents))
         return 0
     if args.command == "dispatch":
+        if args.source == args.target_agent:
+            print_json(self_route_result(args.source, {"agent": args.source}, args.task, args.cwd, args.task_type))
+            return 0
         task = bus.submit_task(
             source_agent=args.source,
             target_agent=args.target_agent,
@@ -240,6 +259,9 @@ def run_command(args: argparse.Namespace) -> int:
         return 0
     if args.command == "dispatch-auto":
         route = resolve_route(args.task, args.task_type, args.previous_agent, args.routes, args.agents)
+        if args.source == route["agent"]:
+            print_json(self_route_result(args.source, route, args.task, args.cwd, args.task_type))
+            return 0
         task = bus.submit_task(
             source_agent=args.source,
             target_agent=route["agent"],

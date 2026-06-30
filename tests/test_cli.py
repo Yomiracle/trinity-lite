@@ -90,6 +90,28 @@ class CliTest(unittest.TestCase):
             self.assertIn("target_agent", data)
             self.assertEqual(data["target_agent"], "codex")
 
+    def test_dispatch_to_self_returns_self_route_without_task(self):
+        with tempfile.TemporaryDirectory(dir=str(Path.home())) as tmp:
+            root = Path(tmp)
+            output = io.StringIO()
+            with redirect_stdout(output):
+                code = main([
+                    "dispatch",
+                    "codex",
+                    "local work",
+                    "--source",
+                    "codex",
+                    "--db",
+                    str(root / "bus.db"),
+                    "--cwd",
+                    str(root),
+                ])
+            self.assertEqual(code, 0)
+            data = json.loads(output.getvalue())
+            self.assertEqual(data["status"], "self_route")
+            self.assertFalse(data["dispatched"])
+            self.assertIsNone(data["task_id"])
+
     def test_dispatch_auto_wait_blocks_until_complete(self):
         with tempfile.TemporaryDirectory(dir=str(Path.home())) as tmp:
             root = Path(tmp)
@@ -135,6 +157,30 @@ class CliTest(unittest.TestCase):
             data = json.loads(output.getvalue())
             self.assertEqual(data["status"], "completed")
             self.assertEqual(data["target_agent"], "qwen_cli")
+
+    def test_dispatch_auto_self_route_returns_structured_result(self):
+        with tempfile.TemporaryDirectory(dir=str(Path.home())) as tmp:
+            root = Path(tmp)
+            output = io.StringIO()
+            with redirect_stdout(output):
+                code = main([
+                    "dispatch-auto",
+                    "implement a parser",
+                    "--source",
+                    "codex",
+                    "--db",
+                    str(root / "bus.db"),
+                    "--cwd",
+                    str(root),
+                ])
+            self.assertEqual(code, 0)
+            data = json.loads(output.getvalue())
+            self.assertEqual(data["status"], "self_route")
+            self.assertEqual(data["source_agent"], "codex")
+            self.assertEqual(data["target_agent"], "codex")
+            self.assertFalse(data["dispatched"])
+            self.assertIsNone(data["task_id"])
+            self.assertEqual(data["route"]["agent"], "codex")
 
     def test_dispatch_auto_uses_capability_routes_and_agents(self):
         with tempfile.TemporaryDirectory(dir=str(Path.home())) as tmp:

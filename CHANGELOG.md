@@ -8,6 +8,11 @@
   latest primary task submitted by a source agent when a client loses the task
   id before displaying the result.
 
+### Fixed
+
+- Return a structured `self_route` result instead of an MCP/CLI error when a
+  dispatch resolves to the source agent itself.
+
 ## v0.6.0 - 2026-06-29
 
 ### Added
