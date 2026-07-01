@@ -1,4 +1,11 @@
 {
   "$schema": "https://glama.ai/mcp/schemas/server.json",
-  "maintainers": ["Yomiracle"]
+  "maintainers": ["Yomiracle"],
+  "relatedServers": [
+    "sharpTrick/parley",
+    "sipyourdrink-ltd/bernstein",
+    "dugubuyan/agent-nexus",
+    "aresyn/codex-control-plane-mcp",
+    "jpicklyk/task-orchestrator"
+  ]
 }
