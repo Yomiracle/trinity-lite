@@ -4,6 +4,9 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    # trinity-lite is a library: keep compatible lower bounds unless an update
+    # cannot be represented by the existing requirement.
+    versioning-strategy: "increase-if-necessary"
     open-pull-requests-limit: 3
     labels:
       - "dependencies"
