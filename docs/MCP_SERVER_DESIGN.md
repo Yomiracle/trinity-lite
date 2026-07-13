@@ -1,10 +1,13 @@
 # MCP Server Design for Trinity Lite
 
-Trinity Lite v0.1.x provides a CLI interface: users run `trinity-lite dispatch-auto`,
-check `trinity-lite tasks`, and poll workers manually. The v0.2 goal is to add an
-**MCP (Model Context Protocol) server** so AI coding agents — Codex, Claude Code,
-and any MCP-compatible client — can call Trinity Lite directly as a tool within
-their session, without leaving the agent interface.
+This document began as the v0.2 implementation design. The current v0.6.1
+server exposes 13 tools and three resources; the authoritative schemas live in
+`trinity_lite/mcp_server.py`, while the phase plan below is retained as design
+history.
+
+The MCP (Model Context Protocol) server lets AI coding agents — Codex, Claude
+Code, and any MCP-compatible client — call Trinity Lite directly as a tool
+within their session, without leaving the agent interface.
 
 ## 1. Architecture
 
@@ -74,8 +77,13 @@ The `mcp serve` subcommand:
 
 ## 2. Tools
 
-Eight tools are exposed via the MCP server. Each tool corresponds to a
-`tools/call` JSON-RPC method with a structured return value.
+The current server exposes 13 tools: `trinity_dispatch`,
+`trinity_dispatch_auto`, `trinity_orchestrate`, `trinity_status`,
+`trinity_latest`, `trinity_tasks`, `trinity_worker`,
+`trinity_worker_daemon`, `trinity_doctor`, `trinity_inbox`, `trinity_send`,
+`trinity_skill_search`, and `trinity_skill_load`. Each tool corresponds to a
+`tools/call` JSON-RPC method with a structured return value. The detailed
+sections below focus on the original bus and recovery tools.
 
 ### 2.1 `trinity_dispatch`
 
@@ -92,7 +100,8 @@ Dispatch a task to a specific named agent.
 | `wait_timeout` | number | no | `600` | Timeout in seconds for wait |
 
 **Security:** `source_agent` is validated against known agent ids. If it
-matches `target_agent`, the call is rejected with a self-delegation error.
+matches `target_agent`, the handler returns a structured `self_route` result
+without creating a task row. The bus still rejects direct self-delegation.
 
 **Return value:** The compact task object (id, status, prompt, agent, timestamps,
 result if completed).
@@ -111,9 +120,9 @@ Resolve the route automatically then dispatch.
 | `wait` | boolean | no | `false` | Block until task completes |
 | `wait_timeout` | number | no | `600` | Timeout in seconds for wait |
 
-**Security:** If routing resolves to `source_agent`, the call is rejected
-(self-delegation prevention). The resolved route is included in the return
-value for auditability.
+**Security:** If routing resolves to `source_agent`, the handler returns a
+structured `self_route` result recommending local execution and does not create
+a task. The resolved route is included for auditability.
 
 **Return value:** Compact task object with `route` key showing the resolved
 route (`agent`, `task_type`, `selection`, `source`).
@@ -285,13 +294,13 @@ server-specific protections.
 | Layer | Mechanism | Location |
 |-------|-----------|----------|
 | 1 | Guard error in `TrinityBus.submit_task` | Already in `bus.py` |
-| 2 | Pre-dispatch check in `trinity_dispatch` | `mcp_server.py` tool handler |
-| 3 | Route-result check in `trinity_dispatch_auto` | `mcp_server.py` tool handler |
+| 2 | Structured no-dispatch result in `trinity_dispatch` | `mcp_server.py` tool handler |
+| 3 | Structured no-dispatch route result in `trinity_dispatch_auto` | `mcp_server.py` tool handler |
 | 4 | `source_agent` validated against known ids | `mcp_server.py` input validation |
 
-Layer 1 catches it at the bus level. Layers 2-3 catch it before the bus call
-so the error message is tool-specific and actionable. Layer 4 prevents the
-client from bypassing validation with unknown agent ids.
+Layer 1 rejects direct task-row creation at the bus level. Layers 2-3 catch the
+condition before the bus call and return an actionable local-execution result.
+Layer 4 prevents the client from bypassing validation with unknown agent ids.
 
 ### 4.2 Allowed Roots Enforcement
 
@@ -325,11 +334,11 @@ All tool parameters are validated on entry:
 - `agent` ids: validated against the set of known agents (from config and
   reserved ids `"user"`, `"mcp"`).
 - Numeric parameters: range-checked (`limit` <= 100, `wait_timeout` <= 3600).
-- JSON-RPC method names: allowlisted to the eight tool names plus
+- JSON-RPC method names: allowlisted to the 13 tool names plus
   `initialize`, `initialized`, `tools/list`, `resources/list`,
   `resources/read`, `shutdown`.
 
-## 5. Implementation Plan
+## 5. Historical Implementation Plan
 
 ### Phase 1: Minimal STDIO Server (v0.2.0)
 
@@ -363,12 +372,12 @@ echo '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"trinity_di
 - Optional `mcp` extra in `pyproject.toml`
 - When `mcp` PyPI package is installed, server delegates transport to it
   while sharing tool implementations
-- Full test coverage for all eight tools and three resources
+- Full test coverage for the original eight tools and three resources
 - Documentation updates in `README.md`
 
 **Acceptance criteria:**
 
-- All eight tools respond correctly via JSON-RPC
+- All original eight tools respond correctly via JSON-RPC
 - Three resources return expected data
 - `pip install trinity-lite[mcp]` works and server uses FastMCP transport
 - All existing tests pass; new MCP tests >= 90% coverage

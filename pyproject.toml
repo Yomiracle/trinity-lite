@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "trinity-lite"
-version = "0.6.0"
-description = "The bus that lets your AI agents talk to each other."
+version = "0.6.1"
+description = "Local AgentOps for cross-vendor CLI agents: route work, recover state, and accept only with evidence."
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
@@ -13,7 +13,7 @@ license-files = ["LICENSE"]
 authors = [
   { name = "Yomiracle" }
 ]
-keywords = ["ai-agent", "multi-agent", "agent-orchestration", "codex", "claude-code"]
+keywords = ["agentops", "ai-agent", "multi-agent", "agent-orchestration", "local-first", "codex", "claude-code"]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Intended Audience :: Developers",
@@ -21,6 +21,7 @@ classifiers = [
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
 ]
 dependencies = []
 
@@ -34,8 +35,10 @@ trinity-lite = "trinity_lite.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/Yomiracle/trinity-lite"
+Documentation = "https://yomiracle.github.io/trinity-lite/"
 Repository = "https://github.com/Yomiracle/trinity-lite"
 Issues = "https://github.com/Yomiracle/trinity-lite/issues"
+Changelog = "https://github.com/Yomiracle/trinity-lite/blob/main/CHANGELOG.md"
 
 [tool.setuptools]
 packages = ["trinity_lite"]

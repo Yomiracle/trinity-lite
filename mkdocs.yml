@@ -1,5 +1,5 @@
 site_name: Trinity Lite
-site_description: Local-first multi-agent orchestration for CLI AI agents.
+site_description: "Local AgentOps for cross-vendor CLI agents: route work, recover state, and accept only with evidence."
 repo_url: https://github.com/Yomiracle/trinity-lite
 theme:
   name: readthedocs
@@ -14,7 +14,10 @@ nav:
       - Hermes and Private Trinity: recipes/hermes-private-trinity.md
       - Generic CLI: recipes/generic-cli.md
   - Capabilities: CAPABILITIES.md
-  - Architecture: ARCHITECTURE.md
+  - Worktree Preview: WORKTREE_PARALLELISM.md
+  - Architecture:
+      - Overview: ARCHITECTURE.md
+      - Agent Capability Routing ADR: architecture/adr-001-agent-capability-routing.md
   - Operations: OPERATIONS.md
   - Security: SECURITY.md
   - MCP Server: MCP_SERVER_DESIGN.md

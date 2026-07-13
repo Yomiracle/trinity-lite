@@ -29,3 +29,23 @@ jobs:
           python3 -m unittest discover -s tests -v
           python3 -m compileall -q trinity_lite
           python3 -m trinity_lite doctor --scan-root .
+
+  macos-smoke:
+    runs-on: macos-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install package
+        run: python3 -m pip install -e ".[yaml]"
+
+      - name: Run tests
+        run: |
+          python3 -m unittest discover -s tests -v
+          python3 -m compileall -q trinity_lite
+          python3 -m trinity_lite doctor --scan-root .

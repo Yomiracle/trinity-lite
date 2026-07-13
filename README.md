@@ -3,16 +3,24 @@
 [![Tests](https://github.com/Yomiracle/trinity-lite/actions/workflows/test.yml/badge.svg)](https://github.com/Yomiracle/trinity-lite/actions/workflows/test.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](pyproject.toml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/Yomiracle/trinity-lite)](https://github.com/Yomiracle/trinity-lite/releases)
 [![PyPI](https://img.shields.io/pypi/v/trinity-lite.svg)](https://pypi.org/project/trinity-lite/)
 [![Yomiracle/trinity-lite MCP server](https://glama.ai/mcp/servers/Yomiracle/trinity-lite/badges/score.svg)](https://glama.ai/mcp/servers/Yomiracle/trinity-lite/score)
 
-**Local-first multi-agent orchestration for CLI AI agents.**
+**Local AgentOps for cross-vendor CLI coding agents. Route work, recover state, and accept only with evidence.**
+
+Trinity Lite is a local control plane for Codex, Claude Code, Hermes, and custom
+CLI agents. It connects the tools you already use; it does not ask you to
+rebuild them inside another framework.
 
 [中文 README](README_zh.md) · [Docs](docs/index.md) · [Why Trinity Lite?](docs/WHY_TRINITY_LITE.md) · [Recipes](docs/recipes/generic-cli.md)
 
 ## The problem
 
-You already use Claude Code. Maybe you just installed Codex. You want them to collaborate, review each other, and leave an audit trail you can inspect later. But there is no built-in way to route tasks between local CLI agents, remember who did what, or decide when work is actually accepted. Trinity Lite is the missing layer.
+You already use more than one capable coding agent. The hard part is no longer
+starting another agent; it is preserving task truth across tools, recovering
+after a client disconnects, preventing duplicate work, and deciding when a
+result is actually accepted. Trinity Lite is that local operations layer.
 
 ## What it does
 
@@ -20,7 +28,7 @@ You already use Claude Code. Maybe you just installed Codex. You want them to co
 - **Give every agent a pull queue.** Workers read pending tasks from the shared bus, execute them via CLI, and write results back. Each agent polls on its own schedule. You never copy-paste an output between terminals again.
 - **Remember every decision.** Every task, status change, result, error, and inter-agent message lands in a local SQLite database. Query who did what, when, and what happened — without setting up a logging pipeline.
 - **Review, verify, then accept.** `orchestrate` runs primary work, routes the required review, runs local verification, and writes acceptance evidence back to SQLite.
-- **Block footguns before they fire.** Self-delegation loops are rejected. Delegation depth has a hard cap. Working directories must be in the allowlist. You ship features, not incident reports.
+- **Block footguns before they fire.** Self-routes become explicit local-work decisions instead of creating loops. Delegation depth has a hard cap. Working directories must be in the allowlist.
 
 ## Quick start
 
@@ -36,18 +44,18 @@ Mock agents are built in. You see the full route → work → review → verify 
 
 ## Not another framework
 
-Trinity Lite doesn't build agents. It connects the agents you already have.
+Trinity Lite does not build agents. It operates the agents you already have.
 
-LangGraph and CrewAI give you primitives for building agents from scratch — graph definitions, role abstractions, tool wrappers. Trinity Lite starts from the opposite end: Claude Code is running in one terminal, Codex is running in another, and they need routing, review handoff, durable state, and an acceptance trail. No SDK to learn. No new agent abstraction. Just a local workflow layer for the CLIs you already use.
+LangGraph and CrewAI give you primitives for building agents from scratch — graph definitions, role abstractions, and tool wrappers. Trinity Lite starts from the opposite end: Claude Code is running in one terminal, Codex is running in another, and their work needs reliable handoff, recovery, independent review, and an acceptance trail. No new agent abstraction. Just local AgentOps for the CLIs you already use.
 
 ## Who this is for
 
 | You are... | Trinity Lite helps you... |
 |------------|---------------------------|
-| Copy-pasting prompts and outputs between two agent terminals all day | Run one orchestrated flow and inspect the evidence afterward |
-| Prototyping a multi-agent pipeline before committing infrastructure | Run the full flow with mock agents — no API keys, no provisioning |
-| Running everything on a single machine with zero server setup | Keep your state in SQLite, your runtime in stdlib, your daemon count at zero |
-| Showing a colleague how multi-agent collaboration works | `pip install` → `trinity-lite orchestrate` → they see it run. No explanation needed. |
+| An advanced solo developer using two or more agent CLIs | Replace manual terminal handoffs with one durable workflow and evidence trail |
+| A small AI-native engineering team | Separate implementation, review, verification, and acceptance without deploying a control server |
+| A local-first or privacy-sensitive developer | Keep task state in an inspectable SQLite database on your machine |
+| An agent-tool integrator | Connect existing CLIs through a neutral bus and MCP surface |
 
 ## Features
 
@@ -62,8 +70,8 @@ LangGraph and CrewAI give you primitives for building agents from scratch — gr
 - **Guard against runaway delegation.** Self-delegation is blocked. Delegation depth is capped. Working directories are allowlisted. Safe by default.
 - **Check health in one pass.** `trinity-lite doctor` verifies Python, SQLite, route config, agent config, and publish readiness.
 - **Zero core dependencies.** The default runtime is Python standard library only. YAML pipelines are available through an optional extra.
-- **130+ tests guarding the surface area.** Mock workflows, safety checks, routing, persistence, MCP, and acceptance gates — all covered.
-- **Smart model selection.** Automatically picks the right LLM for each task. Simple CRUD → cheap model. Architecture design → strong reasoning model. Define your own model pool with tiers and strength tags.
+- **150+ tests guarding the surface area.** Mock workflows, safety checks, routing, persistence, MCP, and acceptance gates — all covered.
+- **Optional model selection hints.** Select from your declared model pool with transparent task, tier, and capability rules; no claim of a universal best or cheapest model.
 
 ## Install
 
@@ -170,9 +178,11 @@ children so recovery lands on the user-facing task.
 
 If the reviewer reports P0/P1 findings, the flow stops at `review_attention`. If local verification fails, it stops at `verification_failed`. `accepted_at` is written only after the required review and verification pass.
 
-## Model Selector (NEW in v0.4.0)
+## Optional Model Selector
 
-Auto-pick the best LLM for each task based on complexity:
+Select from a model pool you control using task complexity and declared
+capabilities. This is a transparent routing helper, not a universal cost
+optimizer:
 
 ```bash
 # Auto-detect your available models (zero config)
@@ -197,7 +207,7 @@ trinity-lite setup-models
 from trinity_lite.model_selector import select_model
 
 result = select_model("Design a rate limiter", task_type="architecture_design")
-print(result["model"])  # → gpt-5.5
+print(result["model"])  # → a premium model from your configured pool
 print(result["reason"]) # → hard_signal:architecture
 ```
 
@@ -215,7 +225,7 @@ Works with 1 model, 2 models, or 10 models. No agent names hardcoded.
 ## Links
 
 - [PyPI](https://pypi.org/project/trinity-lite/)
-- [Documentation](docs/)
+- [Documentation](https://yomiracle.github.io/trinity-lite/)
 - [Why Trinity Lite?](docs/WHY_TRINITY_LITE.md)
 - [Recipes](docs/recipes/generic-cli.md)
 - [Changelog](CHANGELOG.md)

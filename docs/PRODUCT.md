@@ -1,126 +1,136 @@
 # Trinity Lite Product Positioning
 
-Trinity Lite is a local-first multi-agent workflow layer for CLI-based AI coding agents.
+Trinity Lite is a local AgentOps control plane for cross-vendor CLI coding
+agents. It connects tools developers already use so work can be routed,
+recovered, independently reviewed, locally verified, and accepted with durable
+evidence.
 
-It is not a chatbot, not a hosted SaaS, and not a replacement for full agent frameworks. It is a small coordination layer that helps existing CLI agents work through a shared, inspectable task bus.
+It is not a chatbot, a hosted SaaS, or another framework for defining agents.
+It is the operations and acceptance layer around existing agent CLIs.
 
 ## Category
 
 ```text
-Local-first multi-agent workflow infrastructure
+Local AgentOps for CLI agents
 ```
 
-Trinity Lite belongs to the agent orchestration and developer tooling space. Its closest neighbors are multi-agent frameworks and workflow engines, but it is lighter and more CLI-native:
+The short product line is:
 
-- Full agent frameworks create and run agents inside their own abstractions.
-- Trinity Lite coordinates existing agent CLIs through routing, SQLite state, and workers.
+> The local control plane for cross-vendor coding agents: route work, recover
+> state, and accept only with evidence.
 
-## Target Users
+## Primary Users
 
 | User | Need |
 |------|------|
-| AI developers | Prototype multi-agent coding workflows without building infrastructure first |
-| Agent workflow builders | Test routing, review handoffs, task persistence, and worker execution |
-| Indie hackers and small teams | Coordinate local agent tools without deploying a server |
-| Technical creators and educators | Demonstrate real multi-agent flow with commands viewers can reproduce |
+| Advanced solo developers using two or more agent CLIs | Stop copying work between terminals and recover long-running task state |
+| Small AI-native engineering teams | Separate implementation, review, verification, and acceptance without deploying a control server |
+| Local-first or privacy-sensitive developers | Keep task state and evidence in an inspectable local SQLite database |
+| Agent-tool integrators | Coordinate existing CLIs through a neutral task bus and MCP surface |
 
-## Problem
+Technical educators and workflow researchers can use the mock flow, but they
+are a secondary audience rather than the primary product buyer.
 
-AI coding agents are strong individually, but collaboration between them is often manual:
+## The Job to Be Done
 
-- copy output from one tool into another;
-- decide handoffs by memory;
-- lose intermediate task state;
-- forget which agent did what;
-- rerun work because failures are not persisted;
-- struggle to demonstrate a full workflow when real agent CLIs are not installed yet.
+> I already have capable coding agents. Make their handoffs reliable, preserve
+> the truth when a client disconnects, and do not call work complete until a
+> separate review and local verification have produced evidence.
 
-This makes multi-agent work hard to inspect, teach, repeat, and improve.
+Without an operations layer, multi-agent CLI work often means:
 
-## Solution
+- copying prompts and results between terminals;
+- losing task ids or results when a client disconnects;
+- dispatching the same work twice because status is unclear;
+- letting the implementing agent declare its own work complete;
+- relying on chat history instead of an inspectable acceptance record.
 
-Trinity Lite turns agent collaboration into a local workflow:
-
-```text
-task -> router -> SQLite bus -> worker -> agent adapter -> result
-```
-
-The key product idea is simple: agents do not need to live in the same framework or use the same model API to cooperate. They only need a shared task bus, clear routing, durable state, and a small capability contract.
-
-## Efficiency Gains
-
-Trinity Lite does not claim that every task becomes 10x faster. Its value is reducing coordination overhead:
-
-- less copy-paste between agents;
-- fewer lost task states;
-- faster review handoffs;
-- easier replay and inspection;
-- clearer separation between primary work, review, and acceptance;
-- faster onboarding through mock agents before real CLI setup.
-
-For one-off tasks, the gain is small. For repeated implementation, review, and verification loops, the gain compounds because the workflow becomes consistent.
-
-## Innovation
-
-Trinity Lite is different from many agent frameworks because it starts from the tools developers already use:
+## Product Workflow
 
 ```text
-Codex / Claude Code / Hermes / custom CLI
-        |
-        v
-shared local bus
+task -> route -> durable queue -> worker -> result
+     -> independent review -> local verification -> acceptance evidence
 ```
 
-Instead of requiring users to rebuild agents inside a new framework, it wraps CLI agents with a local coordination layer. This makes it easier to adopt incrementally:
+The core contract is not merely "agents can talk." It is that each transition
+has durable state and that acceptance is backed by recorded evidence.
 
-1. run mock agents;
-2. configure one real CLI agent;
-3. declare capabilities for name-agnostic routing;
-4. add MCP server;
-5. add orchestrator.
+## Competitive Wedge
+
+- **Existing-agent adoption:** connect Codex, Claude Code, Hermes, or a custom
+  command adapter without rebuilding them as framework objects.
+- **Durable operational truth:** persist tasks, status, results, errors,
+  messages, review links, and acceptance state in SQLite.
+- **Failure recovery:** recover the latest submitted task after an interrupted
+  MCP response instead of creating a duplicate.
+- **Separation of duties:** route implementation and review to different roles
+  and run a local verifier before acceptance.
+- **Local-first inspectability:** no hosted control plane is required for the
+  core workflow.
+
+Parallel agents, worktrees, subagents, cross-provider access, and model
+selection are useful capabilities, but they are not durable differentiators on
+their own. Trinity Lite should compete on reliable handoff, recovery, and
+evidence rather than the number of agents it can launch.
+
+## Value
+
+Trinity Lite does not claim that every task becomes 10x faster. Its value
+compounds across repeated implementation, review, and verification loops:
+
+- less terminal-to-terminal coordination;
+- fewer lost or duplicate tasks;
+- faster recovery after client failures;
+- independent review before acceptance;
+- a portable record of why work passed or stopped;
+- incremental adoption through mock agents and one real adapter at a time.
 
 ## Technical Pillars
 
-- **SQLite task bus**: durable local state without running a separate server.
-- **Router**: explicit-agent, pattern, and capability routing.
-- **Worker model**: simple polling execution for queued tasks.
-- **Agent adapters**: mock and command modes.
-- **Capability metadata**: roles, capabilities, and priority for arbitrary CLI agents.
-- **Shell-safe execution**: JSON-array commands with `shell=False`.
-- **Guardrails**: self-delegation block, depth limit, allowed cwd roots, public tree scan.
-- **Doctor checks**: local health and publish-readiness checks.
-- **CI**: tests and doctor run on GitHub Actions.
+- SQLite task and message bus.
+- Capability and task-type routing.
+- Mock and shell-safe JSON-array command adapters.
+- MCP tools plus a CLI fallback.
+- Review, verification, and acceptance evidence.
+- Worktree isolation preview and diff evidence.
+- Guardrails for self-routes, delegation depth, allowed roots, and public tree
+  scanning.
+- Doctor checks and release CI.
 
 ## Current Scope
 
-Trinity Lite v0.5 is a public local-first package:
+Trinity Lite v0.6.1 is a single-machine, local-first package with a CLI, MCP
+server, mock and command workers, YAML pipelines, optional model selection,
+worktree preview, task recovery, and an acceptance gate.
 
-- CLI first;
-- mock-agent demo first;
-- zero runtime dependencies for core bus/CLI;
-- optional MCP server;
-- YAML pipeline orchestration;
-- model selection helpers;
-- primary -> review -> local verification acceptance gate;
-- not a production distributed execution engine.
+It is not yet:
 
-## Roadmap Narrative
+- a distributed execution engine;
+- a hosted collaboration platform;
+- an enterprise RBAC or compliance product;
+- a managed browser or sandbox service;
+- a universal model-cost optimizer;
+- a UI-first product.
 
-Trinity Lite grows in layers:
+Those boundaries should remain explicit until the corresponding capability is
+implemented and verified.
 
-```text
-v0.1 local bus + CLI + mock/command workers + capability routing
-v0.2 MCP server for direct agent tool calls
-v0.3 orchestrator for primary work -> review -> verification
-v0.4 model selector for task-aware backend choice
-v0.5 persistent acceptance evidence and local verification gate
-v1.0 stable CLI/schema/package
-```
+## Product Priorities
 
-That staged design keeps the first version understandable while leaving a clear path toward a stronger multi-agent system.
+1. Exportable proof bundles for route, result, review, verification, and
+   acceptance.
+2. Five-minute onboarding and local CLI auto-detection.
+3. A compact task, review, test, failure, latency, and cost console.
+4. Explicit cancellation, retry, and resumable checkpoints.
+5. A stable adapter contract before team or remote-worker features.
 
 ## 中文定位
 
-Trinity Lite 是一个本地优先的多 Agent 工作流基础设施。它面向 AI 开发者、agent 工作流构建者、独立开发者、小团队和技术内容创作者，解决多个 CLI 型 AI 编程工具之间缺少任务路由、状态持久化、二审交接和可复现演示的问题。
+Trinity Lite 是面向跨厂商 CLI 编程 Agent 的本地 AgentOps 控制平面。它不替
+用户重新创建 Agent，而是连接已经在使用的 Codex、Claude Code、Hermes 或
+自定义 CLI，让任务可路由、状态可恢复、结果可二审、变更可验证，并且只有在
+留下持久验收证据后才算完成。
 
-它的创新点不是重新发明一个 agent 框架，而是给 Codex、Claude Code、Hermes 或任意自定义 CLI agent 加一个共享任务总线和能力路由层，让已有工具可以用工程化方式协作。
+它的主要用户是已经同时使用两个以上 AI 编程工具的高级个人开发者和小型
+AI 工程团队。它的竞争力不是“能同时运行多个 Agent”，而是跨厂商、本地优先、
+持久状态、失败恢复、职责分离和证据化验收。

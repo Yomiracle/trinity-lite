@@ -1,62 +1,73 @@
 # Roadmap
 
-Trinity Lite is intentionally small. The public project should stay easy to install, inspect, and modify before adding larger orchestration features.
+Trinity Lite is intentionally small: a local AgentOps control plane for
+cross-vendor CLI agents. The roadmap prioritizes operational trust before a
+larger connector or UI surface.
 
-## v0.1.x: Public MVP Hardening
+## Shipped
 
-- Keep the mock-agent demo stable.
-- Improve README, Chinese docs, and first-run instructions.
-- Expand tests around routing, worker failures, and publish safety checks.
-- Keep private Trinity runtime state out of the public repository.
-- Keep capability-based routing simple, explicit, and backward-compatible.
-- Keep PyPI release automation and packaging metadata healthy.
-- Ship the optional local orchestrator for primary-work-plus-review flows.
+### v0.1-v0.2: Local Bus and MCP
 
-## v0.2: MCP Server
+- SQLite task and message bus.
+- CLI routing, dispatch, workers, status, inbox, and doctor.
+- Mock-agent demo and command adapters.
+- MCP tools and read-only resources.
 
-- Add a minimal MCP server for agent tools:
-  - `trinity_dispatch_auto`
-  - `trinity_status`
-  - `trinity_tasks`
-  - `trinity_send`
-  - `trinity_inbox`
-  - `trinity_doctor`
-- Keep the CLI as the fallback path.
-- Document Codex and Claude Code client setup.
-- Document generic CLI agent setup as the default mental model.
+### v0.3-v0.5: Orchestration and Acceptance
 
-## v0.6: Worktree Parallelism Preview
+- YAML pipelines and primary-to-review orchestration.
+- Optional task-aware model selection from a user-defined pool.
+- Durable route, review, verification, and acceptance evidence.
+- Local acceptance gate that records why work passed or stopped.
 
-- Add managed git worktree lifecycle commands:
-  - `trinity-lite worktree create`
-  - `trinity-lite worktree list`
-  - `trinity-lite worktree diff`
-  - `trinity-lite worktree cleanup`
-- Store worktree metadata outside agent checkouts.
-- Record base commit, branch, worktree path, agent id, and task id.
-- Keep automatic merge, conflict resolution, and branch deletion out of the
-  preview.
-- Prepare for a later `orchestrate --worktree` mode.
+### v0.6: Worktree and Recovery Preview
 
-## v0.7: Connectors Preview
+- Managed git worktree create/list/diff/cleanup commands.
+- Recorded base commit, branch, worktree path, agent id, and diff evidence.
+- `trinity_latest` recovery after an interrupted client response.
+- Structured `self_route` results that keep local work out of delegation loops.
 
-- Add a small JSON command-based connector spec.
-- Start with safe local connectors such as `github`, `pypi`, and `filesystem`.
-- Add `connectors list`, `connectors doctor`, and `connectors run`.
-- Keep arbitrary Python plugin imports out of the public core until the security
-  model is explicit.
+Automatic merge, conflict resolution, and branch deletion remain out of scope
+for the preview.
 
-## v1.0: Stable Local Agent Bus
+## Next
 
-- Freeze the CLI command shape.
-- Freeze the SQLite schema or add migrations.
-- Keep PyPI packaging and release automation stable.
-- Add stable documentation for real-world Codex, Claude Code, and generic CLI setups.
+### v0.7: Proof Bundles and Five-Minute Onboarding
+
+- Export one task's route, result, review, verification, and acceptance data as
+  a portable JSON and Markdown proof bundle.
+- Auto-detect supported local agent CLIs and generate a safe starter config.
+- Add an onboarding doctor that distinguishes optional agents from blockers.
+- Keep the mock-to-real-agent path usable without a hosted account.
+
+### v0.8: Operational Visibility and Recovery
+
+- Add a compact local task/review/test/cost console.
+- Record token, cost, latency, retry, and success metadata when adapters expose
+  it; mark unavailable data explicitly instead of estimating it.
+- Add explicit cancellation, retry, and resumable workflow checkpoints.
+- Preserve SQLite inspectability and stable CLI/JSON output.
+
+## v1.0: Stable Local AgentOps Contract
+
+- Freeze the core CLI command shape and MCP task contract.
+- Stabilize the SQLite schema with documented migrations.
+- Publish a supported adapter contract for custom CLI agents.
+- Keep package, release, documentation, and acceptance evidence synchronized.
+
+## Later, Not Committed
+
+- Safe JSON command connectors for GitHub, PyPI, and local filesystems.
+- Remote workers and encrypted synchronization.
+- Team policy packs and role-based controls.
+
+These layers must not weaken the local-first core or turn Trinity Lite into a
+provider-specific model wrapper.
 
 ## Non-Goals
 
-- No bundled credentials.
-- No private model gateway configuration.
-- No provider-specific API abstraction in the core package.
-- No remote code execution service.
-- No dependency on a specific commercial model provider.
+- No bundled credentials or private model gateway configuration.
+- No hosted remote-code-execution service in the core package.
+- No universal agent framework or provider API abstraction.
+- No claim that routing heuristics automatically choose the globally best or
+  cheapest model.
