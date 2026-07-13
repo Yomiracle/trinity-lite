@@ -3,6 +3,14 @@ name: Publish to PyPI
 on:
   release:
     types: [published]
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/publish.yml"
+      - "pyproject.toml"
+      - "trinity_lite/**"
+      - "tests/**"
+  workflow_dispatch:
 
 permissions: {}
 
@@ -40,10 +48,30 @@ jobs:
         with:
           name: python-package-distributions
           path: dist/
+          if-no-files-found: error
+
+  verify:
+    name: Verify distribution artifact
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+
+      - name: Verify downloaded package metadata
+        run: |
+          python3 -m pip install --upgrade twine
+          python3 -m twine check dist/*
 
   publish:
     name: Publish distribution to PyPI
-    needs: build
+    if: github.event_name == 'release'
+    needs: verify
     runs-on: ubuntu-latest
     environment:
       name: pypi
