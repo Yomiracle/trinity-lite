@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.6.1 - 2026-07-13
 
 ### Added
 
@@ -12,6 +12,16 @@
 
 - Return a structured `self_route` result instead of an MCP/CLI error when a
   dispatch resolves to the source agent itself.
+- Synchronized the GitHub README, package metadata, and published command/tool
+  surface so `trinity_latest` is available to users who install from PyPI.
+
+### Changed
+
+- Positioned Trinity Lite as a local AgentOps control plane for cross-vendor
+  CLI agents, centered on durable recovery and evidence-based acceptance.
+- Added a macOS CI smoke job and Dependabot configuration for Python and
+  GitHub Actions dependencies.
+- Updated supported-version, roadmap, product, and MCP design documentation.
 
 ## v0.6.0 - 2026-06-29
 
@@ -31,6 +41,15 @@
 
 - Ignored local `marketing/` drafts so release checks stay focused on source,
   package, and documentation files.
+
+## v0.5.3 - 2026-06-27
+
+### Changed
+
+- Added Glama registry and Docker evaluation metadata.
+- Improved MCP tool descriptions and annotations for read-only, stateful, and
+  agent-execution tools.
+- Added the GitHub Pages documentation workflow and public agent recipes.
 
 ## v0.5.2 - 2026-06-27
 
@@ -94,3 +113,16 @@
 
 - `run_review_flow()` gains a `BUILTIN_REVIEW_PIPELINE` constant documenting the review flow structure (backwards compatible).
 - MCP server tool count updated from 11 to 12 (new trinity_orchestrate tool).
+
+## Earlier releases
+
+- `v0.2.3`: documentation refresh.
+- `v0.2.2`: optional `agent-skill-system` dependency.
+- `v0.2.1`: agent skill integration.
+- `v0.2.0`: initial MCP server.
+- `v0.1.4`: synchronous dispatch with `--wait`.
+- `v0.1.3`: guided demo and first-run UX.
+- `v0.1.0` through `v0.1.2`: initial local bus, CLI, packaging, and hardening.
+
+Full release notes remain available on the
+[GitHub Releases page](https://github.com/Yomiracle/trinity-lite/releases).

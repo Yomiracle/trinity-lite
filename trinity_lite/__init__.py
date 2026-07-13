@@ -1,3 +1,3 @@
-"""Trinity Lite: a minimal public multi-agent task bus."""
+"""Trinity Lite: local AgentOps for cross-vendor CLI agents."""
 
-__version__ = "0.6.0"
+__version__ = "0.6.1"

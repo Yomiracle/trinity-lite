@@ -2,11 +2,12 @@
 
 Most agent frameworks start by asking you to build agents inside their runtime.
 Trinity Lite starts from a different reality: you already have CLI agents on
-your machine, and you need them to hand work to each other with durable state.
+your machine, and you need a local AgentOps layer for reliable handoff,
+recovery, independent review, and evidence-based acceptance.
 
 ## The Job
 
-Trinity Lite coordinates local CLI agents through a SQLite task bus:
+Trinity Lite operates local CLI agents through a SQLite task bus:
 
 ```text
 prompt -> route -> queued task -> worker -> CLI command -> result -> review -> verification -> acceptance evidence
@@ -67,4 +68,6 @@ Optional layers: MCP clients, dashboards, docs sites, CI checks
 ```
 
 That narrow scope is the product: a developer can install it, run the mock flow,
-then wire in one real CLI at a time.
+then wire in one real CLI at a time without giving up local task truth. The
+durable differentiator is not simply launching multiple agents; it is recovering
+their state and accepting work only after review and verification evidence.

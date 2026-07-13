@@ -1,6 +1,8 @@
 # Trinity Lite Documentation
 
-Trinity Lite is a local-first orchestration layer for CLI AI agents.
+Trinity Lite is a local AgentOps control plane for cross-vendor CLI AI agents.
+It connects the tools developers already use and makes their work routable,
+recoverable, reviewable, and acceptable only with durable evidence.
 
 It gives existing tools such as Codex, Claude Code, Hermes, or your own CLI a
 shared workflow:
@@ -60,5 +62,5 @@ python3 -m pip install "trinity-lite[agent-skill]"   # agent-skill-system integr
 ## What Trinity Lite Is Not
 
 Trinity Lite is not a hosted agent platform, a model gateway, or a replacement
-for a full agent framework. It is a small local coordination layer for existing
-CLI agents.
+for a full agent framework. It is the local operations and acceptance layer for
+existing CLI agents.

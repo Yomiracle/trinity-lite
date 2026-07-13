@@ -5,16 +5,17 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/Yomiracle/trinity-lite)](https://github.com/Yomiracle/trinity-lite/releases)
 [![PyPI](https://img.shields.io/pypi/v/trinity-lite.svg)](https://pypi.org/project/trinity-lite/)
+[![Yomiracle/trinity-lite MCP server](https://glama.ai/mcp/servers/Yomiracle/trinity-lite/badges/score.svg)](https://glama.ai/mcp/servers/Yomiracle/trinity-lite/score)
 
-**面向 CLI 型 AI Agent 的本地优先多 Agent 编排与验收层。**
+**面向跨厂商 CLI 编程 Agent 的本地 AgentOps 控制平面：路由任务、恢复状态、拿证据验收。**
 
-Trinity Lite 给 Codex、Claude Code、Hermes 和任意自定义 CLI agent 提供一条共享工作流：路由任务、执行主任务、自动二审、本地验证、写入验收证据，并用 SQLite 持久化完整过程。
+Trinity Lite 连接你已经在使用的 Codex、Claude Code、Hermes 和任意自定义 CLI agent，不要求把它们重写进另一个框架。它把路由、执行、二审、本地验证和验收证据放进同一条可恢复的本地工作流，并用 SQLite 保存运行事实。
 
 [English README](README.md) · [文档首页](docs/index.md) · [为什么选择 Trinity Lite?](docs/WHY_TRINITY_LITE.md) · [接入教程](docs/recipes/generic-cli.md)
 
 ## 为什么需要 Trinity Lite
 
-单个 AI 编程 agent 已经很强，但多 agent 协作经常还是靠人工调度：
+单个 AI 编程 agent 已经很强。真正困难的是跨工具保存任务事实、在客户端断开后恢复结果、避免重复派发，并确定一项工作是否真的通过了独立审查和本地验证：
 
 | 手工协作方式 | Trinity Lite 方式 |
 |--------------|-------------------|
@@ -30,10 +31,10 @@ Trinity Lite 把“同一台机器上的多个 AI 工具”变成一个小型、
 
 | 用户 | Trinity Lite 帮你做什么 |
 |------|--------------------------|
-| AI 开发者 | 快速原型化多 Agent 编程工作流 |
-| Agent 工作流构建者 | 测试路由、任务持久化、二审交接和 worker 执行 |
-| 独立开发者 / 小团队 | 不搭服务器也能协调本地 CLI agent |
-| 技术博主 / 教学者 | 用别人能跑的命令展示真实多 Agent 流程 |
+| 同时使用两个以上 Agent CLI 的高级个人开发者 | 用持久工作流替代多个终端之间的手工交接 |
+| AI 原生小团队 | 分离实现、二审、验证和验收，不必先部署控制服务器 |
+| 本地优先或隐私敏感的开发者 | 把任务状态和验收证据留在本机 SQLite 中 |
+| Agent 工具集成者 | 通过中立任务总线和 MCP 接入已有 CLI |
 
 ## 30 秒跑通
 
@@ -88,7 +89,7 @@ Codex、Claude Code、Hermes 是默认 preset，不是使用前提。角色可�
 - **Worktree 隔离**：v0.6 preview；`trinity-lite worktree` 可以为 agent 创建独立 git worktree，记录 base commit、branch、路径和 diff 证据。
 - **命令适配器**：通过 JSON array command 接入 Codex、Claude Code、Hermes 或任意自定义 CLI。
 - **本地健康检查**：检查 Python、SQLite、routes、agents、发布扫描状态和可选运行态卫生。
-- **安全边界**：禁止自派发、限制派发深度、限制 cwd 范围、扫描公开发布目录。
+- **安全边界**：自路由不会创建循环任务，同时限制派发深度、cwd 范围并扫描公开发布目录。
 
 ## 技术亮点
 
@@ -102,7 +103,7 @@ Codex、Claude Code、Hermes 是默认 preset，不是使用前提。角色可�
 
 ## 产品定位
 
-Trinity Lite 位于“单个 agent CLI 工具”和“完整 agent 框架”之间：
+Trinity Lite 位于“单个 agent CLI 工具”和“完整 agent 框架”之间，产品类别是本地 AgentOps：
 
 ```text
 Codex / Claude Code / custom CLI
@@ -114,7 +115,7 @@ Trinity Lite: route -> work -> review -> verify -> accept
 后续层：tracing、dashboard、更强的生产级编排
 ```
 
-它不是要替代 agent 框架，而是给开发者已经在用的 AI 工具加一层轻量协作基础设施。
+它不是要替代 agent 框架，而是给开发者已经在用的 AI 工具加一层本地运行、故障恢复、职责分离和证据化验收能力。并行 Agent、worktree 和模型选择是功能，但不是产品壁垒本身。
 
 ## 快速开始
 
@@ -145,7 +146,7 @@ python3 -m pip install "trinity-lite[agent-skill]"   # agent-skill-system 集成
 python3 -m pip install --upgrade trinity-lite
 ```
 
-Trinity Lite 遵循[语义化版本](https://semver.org/lang/zh-CN/)。补丁版本（0.1.x）向后兼容，升级后无需迁移数据或修改配置。查看当前版本：
+Trinity Lite 遵循[语义化版本](https://semver.org/lang/zh-CN/)。同一 minor 系列内的补丁版本保持向后兼容，升级后通常无需迁移数据或修改配置。查看当前版本：
 
 ```bash
 trinity-lite doctor
@@ -218,9 +219,12 @@ trinity-lite worktree cleanup <task_id>
 - **v0.3**：YAML pipeline，支持可配置多步顺序编排。
 - **v0.4**：模型选择器，按任务复杂度和模型能力选择后端。
 - **v0.5**：完整本地验收链路，持久化 `route_json`、`verification_json`、`acceptance_status` 和 `accepted_at`。
-- **v0.6**：Worktree preview，为不同 agent 创建独立 git 工作区并输出 diff 证据。
-- **v0.7**：Connectors preview，用安全的 JSON command spec 接入 GitHub、PyPI、filesystem 等工具。
+- **v0.6**：Worktree 与恢复 preview，提供独立工作区、diff 证据、`trinity_latest` 任务恢复和结构化 `self_route`。
+- **v0.7**：验收证据包和五分钟接入，支持导出 JSON/Markdown 证据并自动发现本地 Agent CLI。
+- **v0.8**：本地任务/二审/测试/成本控制台，以及显式取消、重试和可恢复检查点。
 - **v1.0**：稳定 CLI、SQLite schema 和包发布流程。
+
+GitHub、PyPI、filesystem 等安全连接器属于后续候选层，目前不承诺具体版本。
 
 见：[ROADMAP.md](ROADMAP.md)。
 
