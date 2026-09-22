@@ -63,6 +63,7 @@ LangGraph and CrewAI give you primitives for building agents from scratch — gr
 - **Dispatch directly when you need control.** Bypass the router and send a task straight to `claude_code` or `codex`. Best of both worlds.
 - **Persist everything in SQLite.** Tasks, statuses, results, errors, and messages in one local file. Query it with `sqlite3` or any tool that speaks SQL.
 - **Accept with evidence, not vibes.** The review flow records route decisions, review links, verification results, acceptance reasons, and `accepted_at` in SQLite. A reviewed task is accepted only after the local verifier passes.
+- **Export proof bundles.** `trinity-lite proof <task_id>` writes one task's route, result, review, verification, and acceptance evidence as a portable JSON bundle and a human-readable Markdown summary. Missing stages are marked explicitly, never fabricated.
 - **Isolate agent code edits with git worktrees.** Released as a v0.6 preview: `trinity-lite worktree` creates managed branches and checkouts, records the base commit, and returns diff evidence without touching your main checkout.
 - **Run CLI workers on demand.** `trinity-lite worker codex --once` pulls one queued task, executes the agent's command, and writes the result. Run it in a loop, in cron, or by hand.
 - **Execute safely, no shell injection.** Agent commands are JSON arrays run with `shell=False`. No string interpolation into a shell. No surprises.
@@ -85,7 +86,7 @@ Python 3.10+. Zero core runtime dependencies. Standard library only unless an op
 
 ```bash
 pip install "trinity-lite[yaml]"          # YAML pipeline files
-pip install "trinity-lite[mcp]"           # MCP server — 13 tools + 3 resources
+pip install "trinity-lite[mcp]"           # MCP server — 14 tools + 3 resources
 pip install "trinity-lite[agent-skill]"   # agent-skill-system integration
 ```
 
@@ -141,7 +142,7 @@ pip install trinity-lite[mcp]
 trinity-lite mcp serve
 ```
 
-**13 tools:**
+**14 tools:**
 
 | Tool | What it does |
 |------|--------------|
@@ -150,6 +151,7 @@ trinity-lite mcp serve
 | `trinity_orchestrate` | Run the default review flow or a YAML pipeline |
 | `trinity_status` | Get the state and result of any task by ID |
 | `trinity_latest` | Recover the latest task submitted by an agent |
+| `trinity_proof` | Read a task's full evidence chain as a proof bundle |
 | `trinity_tasks` | List recent tasks, filterable by agent |
 | `trinity_worker` | Run one worker cycle for an agent |
 | `trinity_worker_daemon` | Start, stop, or inspect a daemon worker |
@@ -177,6 +179,18 @@ children so recovery lands on the user-facing task.
 - `acceptance_status`, `acceptance_reason`, and `accepted_at`
 
 If the reviewer reports P0/P1 findings, the flow stops at `review_attention`. If local verification fails, it stops at `verification_failed`. `accepted_at` is written only after the required review and verification pass.
+
+## Proof Bundles
+
+Export one task's full evidence chain as portable files:
+
+```bash
+trinity-lite proof <task_id>                 # JSON + Markdown into the current directory
+trinity-lite proof <task_id> --out bundles/  # choose an output directory
+trinity-lite proof <task_id> --format json   # or: md, both (default)
+```
+
+The JSON bundle carries a `proof_bundle_version` field for schema evolution; the Markdown file summarizes each stage and ends with a timeline table. Stages that were never recorded are exported as explicit nulls and marked "Not recorded" — never fabricated. See [Proof Bundles](docs/PROOF_BUNDLES.md).
 
 ## Optional Model Selector
 

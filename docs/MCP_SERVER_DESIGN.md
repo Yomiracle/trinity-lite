@@ -1,7 +1,7 @@
 # MCP Server Design for Trinity Lite
 
-This document began as the v0.2 implementation design. The current v0.6.1
-server exposes 13 tools and three resources; the authoritative schemas live in
+This document began as the v0.2 implementation design. The current v0.7.0
+server exposes 14 tools and three resources; the authoritative schemas live in
 `trinity_lite/mcp_server.py`, while the phase plan below is retained as design
 history.
 
@@ -77,9 +77,9 @@ The `mcp serve` subcommand:
 
 ## 2. Tools
 
-The current server exposes 13 tools: `trinity_dispatch`,
+The current server exposes 14 tools: `trinity_dispatch`,
 `trinity_dispatch_auto`, `trinity_orchestrate`, `trinity_status`,
-`trinity_latest`, `trinity_tasks`, `trinity_worker`,
+`trinity_latest`, `trinity_proof`, `trinity_tasks`, `trinity_worker`,
 `trinity_worker_daemon`, `trinity_doctor`, `trinity_inbox`, `trinity_send`,
 `trinity_skill_search`, and `trinity_skill_load`. Each tool corresponds to a
 `tools/call` JSON-RPC method with a structured return value. The detailed

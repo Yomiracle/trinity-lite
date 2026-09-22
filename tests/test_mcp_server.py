@@ -91,12 +91,13 @@ class McpServerTest(unittest.TestCase):
         resp = self._call(self._msg("tools/list", 1))
         tools = resp["result"]["tools"]
         self.assertIsInstance(tools, list)
-        self.assertEqual(len(tools), 13)
+        self.assertEqual(len(tools), 14)
         names = [t["name"] for t in tools]
         self.assertIn("trinity_dispatch", names)
         self.assertIn("trinity_dispatch_auto", names)
         self.assertIn("trinity_status", names)
         self.assertIn("trinity_latest", names)
+        self.assertIn("trinity_proof", names)
         self.assertIn("trinity_tasks", names)
         self.assertIn("trinity_worker", names)
         self.assertIn("trinity_doctor", names)
@@ -145,7 +146,7 @@ class McpServerTest(unittest.TestCase):
         data = json.loads(contents[0]["text"])
         self.assertEqual(data["status"], "ok")
         self.assertEqual(data["bus"], "connected")
-        self.assertEqual(data["tools"], 13)
+        self.assertEqual(data["tools"], 14)
         self.assertEqual(data["resources"], 3)
 
     def test_resource_health_degraded(self):
