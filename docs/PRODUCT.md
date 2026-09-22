@@ -99,9 +99,9 @@ compounds across repeated implementation, review, and verification loops:
 
 ## Current Scope
 
-Trinity Lite v0.6.1 is a single-machine, local-first package with a CLI, MCP
+Trinity Lite v0.7.0 is a single-machine, local-first package with a CLI, MCP
 server, mock and command workers, YAML pipelines, optional model selection,
-worktree preview, task recovery, and an acceptance gate.
+worktree preview, task recovery, proof bundle export, and an acceptance gate.
 
 It is not yet:
 

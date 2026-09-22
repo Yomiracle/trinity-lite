@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.7.0 - 2026-09-22
+
+### Added
+
+- Added `trinity-lite proof <task_id> [--out DIR] [--format json|md|both]` to
+  export one task's route, work result, review, verification, and acceptance
+  evidence as a portable proof bundle: a structured JSON file with a
+  `proof_bundle_version` field and a human-readable Markdown file with stage
+  sections and a timeline table.
+- Added `trinity_lite.proof` with `build_proof_bundle()`, `render_markdown()`,
+  and `export_proof_bundle()`. Stages without recorded evidence are exported
+  as explicit nulls and marked "Not recorded" in Markdown; no data is
+  fabricated for incomplete tasks.
+- Added the read-only `trinity_proof` MCP tool that returns the same proof
+  bundle structure to MCP clients without writing files.
+
+### Changed
+
+- The MCP server now exposes 14 tools; README, MCP design documentation, and
+  tool-count assertions were updated accordingly.
+
 ## v0.6.1 - 2026-07-13
 
 ### Added

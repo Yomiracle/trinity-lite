@@ -130,6 +130,9 @@ trinity-lite orchestrate "implement a hello-world function"
 
 # 查看任务和验收证据
 trinity-lite tasks
+
+# 导出某个任务的完整证据链（proof bundle）
+trinity-lite proof <task_id> --out bundles/
 ```
 
 ### 可选 extra
@@ -211,6 +214,10 @@ trinity-lite worktree cleanup <task_id>
 ```
 
 当前 preview 只负责创建、列出、查看 diff 和清理 worktree；不会自动合并，也不会默认删除分支。详见：[Worktree Parallelism Preview](docs/WORKTREE_PARALLELISM.md)。
+
+## Proof Bundle
+
+`trinity-lite proof <task_id>` 把单个任务的 route、执行结果、二审、验证和验收证据导出为可移植的 JSON 文件（含 `proof_bundle_version` 版本字段）和人类可读的 Markdown 摘要（按 route → work → review → verify → accept 分节，附时间线表格）。未记录的阶段在 JSON 中显式为 null、在 Markdown 中标注 "Not recorded"，绝不编造数据。详见：[Proof Bundles](docs/PROOF_BUNDLES.md)。
 
 ## 路线图
 

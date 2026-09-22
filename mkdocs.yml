@@ -15,6 +15,7 @@ nav:
       - Generic CLI: recipes/generic-cli.md
   - Capabilities: CAPABILITIES.md
   - Worktree Preview: WORKTREE_PARALLELISM.md
+  - Proof Bundles: PROOF_BUNDLES.md
   - Architecture:
       - Overview: ARCHITECTURE.md
       - Agent Capability Routing ADR: architecture/adr-001-agent-capability-routing.md

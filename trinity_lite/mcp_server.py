@@ -206,6 +206,19 @@ TOOL_DEFINITIONS = [
         READ_ONLY_TOOL,
     ),
     _tool_def(
+        "trinity_proof",
+        _desc(
+            "Read one task's full evidence chain as a structured proof bundle: route, work result, review, verification, acceptance, and a stage timeline.",
+            "Use this to audit or export why a task was accepted or blocked; stages without recorded evidence are returned as explicit nulls.",
+            "This is read-only and does not write files or run workers; use the trinity-lite proof CLI command to write JSON and Markdown bundle files.",
+        ),
+        {
+            "task_id": {"type": "string", "description": "Task identifier returned by dispatch, orchestration, or task listing."},
+        },
+        ["task_id"],
+        READ_ONLY_TOOL,
+    ),
+    _tool_def(
         "trinity_tasks",
         _desc(
             "List recent durable task records, optionally filtered by source or target agent.",
@@ -595,6 +608,16 @@ def _handle_trinity_status(params, bus, agents_path, routes_path):
     return jsonrpc_response(1, _compact_task(task))
 
 
+def _handle_trinity_proof(params, bus, agents_path, routes_path):
+    task_id = _validate_task_id(params["task_id"])
+    from .proof import build_proof_bundle
+    try:
+        bundle = build_proof_bundle(bus, task_id)
+    except KeyError:
+        return jsonrpc_error(1, -32002, "task not found: {}".format(task_id))
+    return jsonrpc_response(1, bundle)
+
+
 def _handle_trinity_tasks(params, bus, agents_path, routes_path):
     agent = params.get("agent", "")
     limit = _validate_limit(params.get("limit"))
@@ -915,6 +938,7 @@ TOOL_HANDLERS = {
     "trinity_dispatch_auto": _handle_trinity_dispatch_auto,
     "trinity_status": _handle_trinity_status,
     "trinity_latest": _handle_trinity_latest,
+    "trinity_proof": _handle_trinity_proof,
     "trinity_tasks": _handle_trinity_tasks,
     "trinity_worker": _handle_trinity_worker,
     "trinity_worker_daemon": _handle_trinity_worker_daemon,

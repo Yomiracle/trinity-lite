@@ -13,6 +13,7 @@ from .bus import TrinityBus
 from .doctor import run_doctor
 from .orchestrator import run_review_flow
 from .pipeline import load_pipeline, run_pipeline
+from .proof import export_proof_bundle
 from .router import resolve_route
 from .worker import _default_pid_path, run_loop, run_once
 from .worktree import cleanup_worktree, create_worktree, diff_worktree, list_managed_worktrees
@@ -53,7 +54,7 @@ Quick demo:  trinity-lite demo
 Full help:   trinity-lite --help
 
 Commands: demo, dispatch, dispatch-auto, worker, orchestrate, worktree,
-          status, latest, tasks, route, doctor, send, inbox, mcp,
+          status, latest, tasks, route, proof, doctor, send, inbox, mcp,
           setup-models, detect-models"""
 
 
@@ -110,6 +111,12 @@ def build_parser() -> argparse.ArgumentParser:
     latest = sub.add_parser("latest", parents=[common], help="show latest task submitted by one source agent")
     latest.add_argument("agent")
     latest.add_argument("--include-reviews", action="store_true", help="include review child tasks in the lookup")
+
+    proof = sub.add_parser("proof", parents=[common], help="export a task's evidence chain as a proof bundle")
+    proof.add_argument("task_id")
+    proof.add_argument("--out", default=None, help="output directory (default: current directory)")
+    proof.add_argument("--format", dest="formats", choices=["json", "md", "both"], default="both",
+                       help="bundle format to write (default: both)")
 
     worker = sub.add_parser("worker", parents=[common], help="run a worker for one agent")
     worker.add_argument("agent")
@@ -314,6 +321,10 @@ def run_command(args: argparse.Namespace) -> int:
         return 0
     if args.command == "latest":
         print_json(bus.latest_source_task(args.agent, args.include_reviews))
+        return 0
+    if args.command == "proof":
+        formats = ("json", "md") if args.formats == "both" else (args.formats,)
+        print_json(export_proof_bundle(bus, args.task_id, out_dir=args.out, formats=formats))
         return 0
     if args.command == "worker":
         if args.once:
