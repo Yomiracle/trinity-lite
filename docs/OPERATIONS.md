@@ -32,6 +32,11 @@ git status --short
 not belong in a public repository, including `.env`, runtime databases, logs,
 metrics files, likely secrets, symlinks, and retired runtime artifacts.
 
+For first-run setup, `trinity-lite doctor --onboarding` grades every check as
+`blocker` or `optional`, additionally probes PATH for supported agent CLIs,
+and exits non-zero only when a blocker fails. Optional failures (for example
+no agent CLI installed yet) carry a hint and never block the mock-agent path.
+
 ## PyPI Publishing
 
 Trinity Lite publishes releases to PyPI. Release artifacts should be built from

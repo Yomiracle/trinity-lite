@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "trinity-lite"
-version = "0.7.0"
+version = "0.7.1"
 description = "Local AgentOps for cross-vendor CLI agents: route work, recover state, and accept only with evidence."
 readme = "README.md"
 requires-python = ">=3.10"

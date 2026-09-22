@@ -88,7 +88,7 @@ Codex、Claude Code、Hermes 是默认 preset，不是使用前提。角色可�
 - **验收证据链**：orchestrator 会持久化 `route_json`、二审关联、`verification_json`、验收原因和 `accepted_at`。
 - **Worktree 隔离**：v0.6 preview；`trinity-lite worktree` 可以为 agent 创建独立 git worktree，记录 base commit、branch、路径和 diff 证据。
 - **命令适配器**：通过 JSON array command 接入 Codex、Claude Code、Hermes 或任意自定义 CLI。
-- **本地健康检查**：检查 Python、SQLite、routes、agents、发布扫描状态和可选运行态卫生。
+- **本地健康检查**：检查 Python、SQLite、routes、agents、发布扫描状态和可选运行态卫生。`trinity-lite doctor --onboarding` 会把检查分为 blocker 与 optional，并探测本机 agent CLI，只有 blocker 失败才返回非零。
 - **安全边界**：自路由不会创建循环任务，同时限制派发深度、cwd 范围并扫描公开发布目录。
 
 ## 技术亮点
@@ -176,16 +176,22 @@ trinity-lite doctor --runtime-root ~/.trinity-lite --retired-port 9797
 
 ## 接入真实 Agent
 
-复制示例配置：
+自动探测本机已安装的 agent CLI 并生成安全的 starter 配置：
 
 ```bash
-cp examples/agents.command.example.json agents.local.json
+trinity-lite init
 ```
 
-编辑 `agents.local.json` 后运行：
+`trinity-lite init` 会探测 PATH 上的 Codex、Claude Code、Hermes，为探测到的 CLI 写入 JSON array 命令，未探测到的保持 mock 模式；不会写入任何凭证，也不会在未加 `--force` 时覆盖已有配置。然后运行：
 
 ```bash
 trinity-lite orchestrate "write a unit test" --agents agents.local.json
+```
+
+也可以手动复制示例配置后编辑：
+
+```bash
+cp examples/agents.command.example.json agents.local.json
 ```
 
 命令用 JSON array 配置，并用 `shell=False` 执行，避免 shell 注入。
