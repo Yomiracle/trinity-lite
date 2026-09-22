@@ -1,5 +1,30 @@
 # Changelog
 
+## v0.7.1 - 2026-09-22
+
+### Added
+
+- Added `trinity-lite init [--out PATH] [--force]` to detect supported local
+  agent CLIs (Codex, Claude Code, Hermes) on PATH and write a safe starter
+  `agents.local.json`: detected CLIs become command-mode agents with the
+  documented JSON-array commands, undetected presets stay in mock mode, and
+  no credentials are ever written. An existing config is never overwritten
+  unless `--force` is given; when no CLI is found the command still succeeds
+  and writes a mock-only config.
+- Added `trinity_lite.init` with `detect_agent_clis()`,
+  `build_starter_config()`, and `run_init()`.
+- Added `trinity-lite doctor --onboarding`: every doctor check now carries a
+  `level` field (`blocker` or `optional`), onboarding mode additionally
+  probes for supported agent CLIs as an optional check with a remediation
+  hint, and the CLI exits non-zero only when a blocker check fails. The
+  report also lists `blockers_failed` and `optional_failed` explicitly.
+
+### Changed
+
+- Default `trinity-lite doctor` behavior is unchanged: it still exits 0 and
+  computes `status` from all checks, so existing MCP and acceptance-gate
+  callers are unaffected.
+
 ## v0.7.0 - 2026-09-22
 
 ### Added

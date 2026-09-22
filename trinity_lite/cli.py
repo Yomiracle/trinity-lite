@@ -53,7 +53,7 @@ Trinity Lite — multi-agent task bus
 Quick demo:  trinity-lite demo
 Full help:   trinity-lite --help
 
-Commands: demo, dispatch, dispatch-auto, worker, orchestrate, worktree,
+Commands: demo, init, dispatch, dispatch-auto, worker, orchestrate, worktree,
           status, latest, tasks, route, proof, doctor, send, inbox, mcp,
           setup-models, detect-models"""
 
@@ -173,6 +173,28 @@ def build_parser() -> argparse.ArgumentParser:
         default=[],
         help="TCP port that should not be listening, repeatable",
     )
+    doctor.add_argument(
+        "--onboarding",
+        action="store_true",
+        help="onboarding mode: also probe agent CLIs, grade checks as blocker/optional, "
+             "and exit non-zero only when a blocker fails",
+    )
+
+    init_cmd = sub.add_parser(
+        "init",
+        parents=[common],
+        help="detect local agent CLIs and write a safe starter agents config",
+    )
+    init_cmd.add_argument(
+        "--out",
+        default=None,
+        help="output path (default: ./agents.local.json)",
+    )
+    init_cmd.add_argument(
+        "--force",
+        action="store_true",
+        help="overwrite an existing config file",
+    )
 
     version_cmd = sub.add_parser("version", parents=[common], help="show version and exit")
 
@@ -228,7 +250,12 @@ def run_command(args: argparse.Namespace) -> int:
     if args.command == "worktree":
         return _worktree(args)
 
-    # Model pool commands do not use the task bus.
+    # Init and model pool commands do not use the task bus.
+    if args.command == "init":
+        from .init import run_init
+
+        print_json(run_init(out_path=args.out, force=args.force))
+        return 0
     if args.command == "setup-models":
         from .model_pool_wizard import main as wizard_main
         wizard_main()
@@ -342,14 +369,18 @@ def run_command(args: argparse.Namespace) -> int:
         print_json(bus.inbox(args.agent, unread_only=not args.all, mark_read=args.mark_read, limit=args.limit))
         return 0
     if args.command == "doctor":
-        print_json(run_doctor(
+        report = run_doctor(
             args.db,
             args.routes,
             args.agents,
             args.scan_root,
             args.runtime_root,
             args.retired_port,
-        ))
+            onboarding=getattr(args, "onboarding", False),
+        )
+        print_json(report)
+        if getattr(args, "onboarding", False):
+            return 1 if report["blockers_failed"] else 0
         return 0
     if args.command == "demo":
         return _demo(args, bus)

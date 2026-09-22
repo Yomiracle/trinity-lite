@@ -24,6 +24,33 @@ RETIRED_RUNTIME_ARTIFACTS = {
     "trinity_learn.db-shm",
 }
 
+# Checks that never block a first run. Everything else is a blocker:
+# without it the bus, routes, or agent config cannot work at all.
+OPTIONAL_CHECKS = {
+    "public_tree_scan",
+    "runtime_root",
+    "runtime_metrics",
+    "retired_runtime_artifacts",
+    "retired_port",
+    "agent_clis",
+}
+
+# Hints attached to failed optional checks so onboarding users know the
+# failure does not block the mock-agent path.
+OPTIONAL_HINTS = {
+    "agent_clis": "no supported agent CLI on PATH; mock agents still work, or run `trinity-lite init` after installing one",
+    "public_tree_scan": "resolve before publishing this tree",
+    "runtime_root": "runtime state directory is not ready yet",
+    "runtime_metrics": "start the runtime once to generate metrics",
+    "retired_runtime_artifacts": "remove retired artifacts from the runtime directory",
+    "retired_port": "stop the listener on the retired port",
+}
+
+
+def _check_level(name: str) -> str:
+    base = name.split(":", 1)[0]
+    return "optional" if base in OPTIONAL_CHECKS else "blocker"
+
 
 def run_doctor(
     db_path: str | None = None,
@@ -32,6 +59,7 @@ def run_doctor(
     scan_root: str | None = None,
     runtime_root: str | None = None,
     retired_ports: list[int] | None = None,
+    onboarding: bool = False,
 ) -> dict[str, Any]:
     checks: list[dict[str, Any]] = []
 
@@ -99,9 +127,51 @@ def run_doctor(
     for port in retired_ports or []:
         checks.append(_retired_port_check(port))
 
+    if onboarding:
+        checks.append(_agent_cli_check())
+
+    for check in checks:
+        check["level"] = _check_level(check["name"])
+        if not check["ok"] and check["level"] == "optional":
+            hint = OPTIONAL_HINTS.get(check["name"].split(":", 1)[0])
+            if hint:
+                check["hint"] = hint
+
+    blockers_failed = [
+        c["name"] for c in checks if not c["ok"] and c["level"] == "blocker"
+    ]
+    optional_failed = [
+        c["name"] for c in checks if not c["ok"] and c["level"] == "optional"
+    ]
+
+    if onboarding:
+        status = "healthy" if not blockers_failed else "unhealthy"
+    else:
+        status = "healthy" if all(c["ok"] for c in checks) else "unhealthy"
+
     return {
-        "status": "healthy" if all(c["ok"] for c in checks) else "unhealthy",
+        "status": status,
+        "onboarding": bool(onboarding),
+        "blockers_failed": blockers_failed,
+        "optional_failed": optional_failed,
         "checks": checks,
+    }
+
+
+def _agent_cli_check() -> dict[str, Any]:
+    """Probe PATH for supported agent CLIs (always optional)."""
+    from .init import detect_agent_clis
+
+    detected = detect_agent_clis()
+    found = sorted(agent for agent, exe in detected.items() if exe)
+    missing = sorted(agent for agent, exe in detected.items() if not exe)
+    return {
+        "name": "agent_clis",
+        "ok": bool(found),
+        "detail": {
+            "found": {agent: detected[agent] for agent in found},
+            "missing": missing,
+        },
     }
 
 

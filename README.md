@@ -69,7 +69,7 @@ LangGraph and CrewAI give you primitives for building agents from scratch — gr
 - **Execute safely, no shell injection.** Agent commands are JSON arrays run with `shell=False`. No string interpolation into a shell. No surprises.
 - **Test with mock agents.** Mock agents simulate the full cycle without real CLIs. Prototype routing, persistence, and review handoffs first. Wire up real agents later.
 - **Guard against runaway delegation.** Self-delegation is blocked. Delegation depth is capped. Working directories are allowlisted. Safe by default.
-- **Check health in one pass.** `trinity-lite doctor` verifies Python, SQLite, route config, agent config, and publish readiness.
+- **Check health in one pass.** `trinity-lite doctor` verifies Python, SQLite, route config, agent config, and publish readiness. `trinity-lite doctor --onboarding` grades every check as blocker or optional, probes for agent CLIs, and fails only on blockers.
 - **Zero core dependencies.** The default runtime is Python standard library only. YAML pipelines are available through an optional extra.
 - **150+ tests guarding the surface area.** Mock workflows, safety checks, routing, persistence, MCP, and acceptance gates — all covered.
 - **Optional model selection hints.** Select from your declared model pool with transparent task, tier, and capability rules; no claim of a universal best or cheapest model.
@@ -100,12 +100,14 @@ trinity-lite orchestrate "implement a rate limiter for the API"
 
 The primary task row records `route_json`, `review_task_id`, `verification_json`, `acceptance_status`, `acceptance_reason`, and `accepted_at`.
 
-Ready for real CLIs when you are:
+Ready for real CLIs when you are — auto-detect what is installed and generate a safe starter config:
 
 ```bash
-cp examples/agents.command.example.json agents.local.json
+trinity-lite init
 trinity-lite orchestrate "implement a rate limiter for the API" --agents agents.local.json
 ```
+
+`trinity-lite init` probes PATH for Codex, Claude Code, and Hermes, writes `agents.local.json` with JSON-array commands for the CLIs it finds, keeps the rest in mock mode, and never writes credentials or overwrites an existing config without `--force`. Prefer hand-editing? `cp examples/agents.command.example.json agents.local.json` still works.
 
 Prefer manual control? Use the lower-level bus commands:
 

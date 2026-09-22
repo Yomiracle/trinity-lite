@@ -11,7 +11,21 @@ Focused recipes:
 - [Hermes and private Trinity boundaries](recipes/hermes-private-trinity.md)
 - [Generic CLI agent](recipes/generic-cli.md)
 
-## 1. Copy the Example
+## 1. Generate or Copy the Starter Config
+
+Auto-detect supported CLIs on PATH and write a safe starter config:
+
+```bash
+trinity-lite init
+```
+
+`trinity-lite init` probes for Codex, Claude Code, and Hermes. Detected CLIs
+become command-mode agents with the JSON-array commands shown below;
+undetected presets stay in mock mode. It never writes credentials and never
+overwrites an existing `agents.local.json` unless you pass `--force`. When no
+supported CLI is found, it still writes a usable mock-only config.
+
+Or copy the example by hand:
 
 ```bash
 cp examples/agents.command.example.json agents.local.json
@@ -195,7 +209,7 @@ Supported placeholders:
 
 ## 中文说明
 
-默认 mock agent 是为了让任何人都能先跑通流程。接入真实 Codex、Claude Code、Hermes 或自定义 CLI 时，只需要复制示例到本地的 `agents.local.json`，然后按自己的机器修改命令。
+默认 mock agent 是为了让任何人都能先跑通流程。接入真实 Codex、Claude Code、Hermes 或自定义 CLI 时，可以直接运行 `trinity-lite init` 自动探测本机 CLI 并生成 `agents.local.json`，或复制示例后按自己的机器修改命令。
 
 关键规则：
 

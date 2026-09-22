@@ -30,19 +30,18 @@ larger connector or UI surface.
 Automatic merge, conflict resolution, and branch deletion remain out of scope
 for the preview.
 
-### v0.7: Proof Bundles
+### v0.7: Proof Bundles and Five-Minute Onboarding
 
 - Export one task's route, result, review, verification, and acceptance data as
   a portable JSON and Markdown proof bundle via `trinity-lite proof` and the
   read-only `trinity_proof` MCP tool.
+- Auto-detect supported local agent CLIs and generate a safe starter config
+  via `trinity-lite init`.
+- Distinguish optional checks from blockers via `trinity-lite doctor
+  --onboarding`, which fails only on blockers.
+- The mock-to-real-agent path stays usable without a hosted account.
 
 ## Next
-
-### v0.7 (remaining): Five-Minute Onboarding
-
-- Auto-detect supported local agent CLIs and generate a safe starter config.
-- Add an onboarding doctor that distinguishes optional agents from blockers.
-- Keep the mock-to-real-agent path usable without a hosted account.
 
 ### v0.8: Operational Visibility and Recovery
 
