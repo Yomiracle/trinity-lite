@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.7.2 - 2026-10-12
+
+### Fixed
+
+- Fixed the MCP stdio handshake crash surfaced when running behind
+  `mcp-proxy` (or any client using the official `mcp` SDK >= 1.27): the
+  hand-rolled server only recognized `initialized`, but the spec sends
+  `notifications/initialized` as a notification (no `id`), which produced
+  an `id: null` error response the SDK could not validate and closed the
+  stream (`McpError: Connection closed`). Any notification (no `id`) now
+  returns no response, and the serve loop's exception path no longer emits
+  `id: null` errors either.
+
 ## v0.7.1 - 2026-09-22
 
 ### Added
