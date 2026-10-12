@@ -75,6 +75,19 @@ class McpServerTest(unittest.TestCase):
         resp = self._call(self._msg("initialized"))
         self.assertIsNone(resp)
 
+    def test_notifications_initialized_returns_none(self):
+        # Real MCP clients send `notifications/initialized` (no id) after
+        # initialize. Must return None and never emit an id:null error.
+        resp = self._call({"jsonrpc": "2.0", "method": "notifications/initialized"})
+        self.assertIsNone(resp)
+
+    def test_unknown_notification_returns_none(self):
+        # Any notification (no id) must not receive a response, even if the
+        # method is unknown. Regression for id:null error responses that
+        # crashed the official mcp SDK >= 2.x stdio transport.
+        resp = self._call({"jsonrpc": "2.0", "method": "notifications/whatever"})
+        self.assertIsNone(resp)
+
     def test_shutdown_returns_empty_result(self):
         resp = self._call(self._msg("shutdown", 1, {}))
         self.assertEqual(resp["id"], 1)

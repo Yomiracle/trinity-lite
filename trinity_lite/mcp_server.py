@@ -374,6 +374,7 @@ RESOURCE_DEFINITIONS = [
 ALLOWED_METHODS = {
     "initialize",
     "initialized",
+    "notifications/initialized",
     "tools/list",
     "tools/call",
     "resources/list",
@@ -1073,6 +1074,13 @@ def handle_request(msg, bus, agents_path, routes_path):
     id_ = msg.get("id")
     params = msg.get("params", {})
 
+    # JSON-RPC 2.0: notifications carry no `id` and must NOT receive a
+    # response. Silently accept any notification (known or unknown) so we
+    # never emit an `id: null` error response, which the official `mcp`
+    # SDK >= 2.x stdio transport fails to validate and closes the stream.
+    if id_ is None:
+        return None
+
     if method not in ALLOWED_METHODS:
         return jsonrpc_error(id_, -32601, "method not found: {}".format(method))
 
@@ -1083,7 +1091,7 @@ def handle_request(msg, bus, agents_path, routes_path):
             "serverInfo": {"name": SERVER_NAME, "version": SERVER_VERSION},
         })
 
-    if method == "initialized":
+    if method in ("initialized", "notifications/initialized"):
         return None
 
     if method == "tools/list":
@@ -1143,9 +1151,12 @@ def serve(bus, agents_path=None, routes_path=None):
         except Exception:
             tb = traceback.format_exc()
             print("[mcp] unhandled exception:\n{}".format(tb), file=sys.stderr, flush=True)
-            error_resp = jsonrpc_error(msg.get("id"), -32603, "internal server error")
-            sys.stdout.write(json.dumps(error_resp) + "\n")
-            sys.stdout.flush()
+            # Don't emit an `id: null` error for notifications (no id).
+            _err_id = msg.get("id")
+            if _err_id is not None:
+                error_resp = jsonrpc_error(_err_id, -32603, "internal server error")
+                sys.stdout.write(json.dumps(error_resp) + "\n")
+                sys.stdout.flush()
             continue
 
         # Write response
